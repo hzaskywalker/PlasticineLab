@@ -1,0 +1,73 @@
+SIMULATOR:
+  yield_stress: 50.
+  ground_friction: 0.3
+SHAPES:
+  - shape: box
+    width: (0.6, 0.06, 0.06)
+    init_pos: (0.5, 0.03, 0.73)
+    color: (((0 << 8) + 150) << 8)
+PRIMITIVES:
+  - shape: Sphere
+    radius: 0.03
+    init_pos: (0.22, 0.015, 0.82)
+    color: (0.8, 0.8, 0.8)
+    friction: 0.9
+    action:
+      dim: 3
+      scale: (0.01, 0.01, 0.01)
+  - shape: Sphere
+    radius: 0.03
+    init_pos: (0.78, 0.015, 0.82)
+    color: (0.8, 0.8, 0.8)
+    friction: 0.9
+    action:
+      dim: 3
+      scale: (0.01, 0.01, 0.01)
+  - shape: Cylinder
+    h: 0.1
+    r: 0.2
+    init_pos: (0.3919300650726247, 0., 0.4990770359432596)
+    color: (0.3, 0.3, 0.3)
+    friction: 0.9
+ENV:
+  loss:
+    target_path: envs/data/Rope3D-v1.npy
+RENDERER:
+  camera_pos: (0.5, 2.5, 2.)
+  camera_rot: (1.0, 0.)
+VARIANTS:
+  - PRIMITIVES:
+      -
+      -
+      - init_pos: (0.3919300650726247, 0, 0.4990770359432596)
+    ENV:
+      loss:
+        target_path: envs/assets/Rope3D-v1.npy
+  - PRIMITIVES:
+      -
+      -
+      - init_pos: (0.4827737598605798, 0, 0.572508568647028)
+    ENV:
+      loss:
+        target_path: envs/assets/Rope3D-v2.npy
+  - PRIMITIVES:
+      -
+      -
+      - init_pos: (0.48953026610561057, 0, 0.5199459480962076)
+    ENV:
+      loss:
+        target_path: envs/assets/Rope3D-v3.npy
+  - PRIMITIVES:
+      -
+      -
+      - init_pos: (0.46968068720064815, 0, 0.3868456769743354)
+    ENV:
+      loss:
+        target_path: envs/assets/Rope3D-v4.npy
+  - PRIMITIVES:
+      -
+      -
+      - init_pos: (0.49333308965447087, 0, 0.5946055392248519)
+    ENV:
+      loss:
+        target_path: envs/assets/Rope3D-v5.npy

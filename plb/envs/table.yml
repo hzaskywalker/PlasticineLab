@@ -1,0 +1,59 @@
+SIMULATOR:
+  yield_stress: 50.
+  nu: 0.05
+  ground_friction: 0.3
+SHAPES:
+  - shape: box
+    width: (0.04, 0.1, 0.04)
+    init_pos: (0.5-0.075, 0.1, 0.5-0.075)
+    n_particles: 2000
+  - shape: box
+    width: (0.04, 0.1, 0.04)
+    init_pos: (0.5-0.075, 0.1, 0.5+0.075)
+    n_particles: 2000
+  - shape: box
+    width: (0.04, 0.1, 0.04)
+    init_pos: (0.5+0.075, 0.1, 0.5-0.075)
+    n_particles: 2000
+  - shape: box
+    width: (0.04, 0.1, 0.04)
+    init_pos: (0.5+0.075, 0.1, 0.5+0.075)
+    n_particles: 2000
+  - shape: box
+    width: (0.2, 0.05, 0.2)
+    init_pos: (0.5, 0.18, 0.5)
+    color: (((200 << 8) + 200) << 8)
+    n_particles: 2000
+PRIMITIVES:
+  - shape: Sphere
+    radius: 0.04
+    init_pos: (0.5, 0.06, 0.5)
+    friction: 0.9
+    color: (0.8, 0.8, 0.8)
+    action:
+      dim: 3
+      scale: (0.03, 0.0, 0.03)
+ENV:
+  loss:
+    target_path: envs/assets/Table3D-v1.npy
+RENDERER:
+  camera_pos: (0.5, 0.3, 1.5)
+  camera_rot: (0.1, 0.)
+  use_directional_light: True
+
+VARIANTS:
+  - ENV:
+      loss:
+        target_path: envs/assets/Table3D-v1.npy
+  - ENV:
+      loss:
+        target_path: envs/assets/Table3D-v2.npy
+  - ENV:
+      loss:
+        target_path: envs/assets/Table3D-v3.npy
+  - ENV:
+      loss:
+        target_path: envs/assets/Table3D-v4.npy
+  - ENV:
+      loss:
+        target_path: envs/assets/Table3D-v5.npy
