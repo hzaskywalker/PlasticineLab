@@ -6,7 +6,7 @@ class MPMSimulator:
     def __init__(self, cfg, primitives=()):
         dim = self.dim = cfg.dim
         assert cfg.dtype == 'float64'
-        dtype = self.dtype = ti.f64 if cfg.dtype == 'float64' else ti.f32
+        dtype = self.dtype = ti.f64 #if cfg.dtype == 'float64' else ti.f64
         self._yield_stress = cfg.yield_stress
         self.ground_friction = cfg.ground_friction
         self.default_gravity = cfg.gravity
@@ -290,6 +290,13 @@ class MPMSimulator:
                     C[i, j, k] = self.C[f, i][j, k]
 
     @ti.kernel
+    def readframe_grad(self,f:ti.i32, x_grad: ti.ext_arr(), v_grad: ti.ext_arr()):
+        for i in range(self.n_particles):
+            for j in ti.static(range(self.dim)):
+                x_grad[i,j] = self.x.grad[f,i][j]
+                v_grad[i,j] = self.v.grad[f,i][j]
+
+    @ti.kernel
     def setframe(self, f:ti.i32, x: ti.ext_arr(), v: ti.ext_arr(), F: ti.ext_arr(), C: ti.ext_arr()):
         for i in range(self.n_particles):
             for j in ti.static(range(self.dim)):
@@ -321,6 +328,20 @@ class MPMSimulator:
         for i in self.primitives:
             out.append(i.get_state(f))
         return out
+
+    def get_current_state(self):
+        return self.get_state(self.cur)
+
+    def get_state_grad(self,f):
+        x_grad = np.zeros((self.n_particles,self.dim), dtype = np.float64)
+        v_grad = np.zeros((self.n_particles,self.dim), dtype = np.float64)
+        primitive_pos_grad = np.zeros((self.n_primitive,self.dim), dtype = np.float64)
+        primitive_rot_grad = np.zeros((self.n_primitive,self.dim+1), dtype = np.float64)
+        self.readframe_grad(f,x_grad,v_grad)
+        for i,primitive in enumerate(self.primitives):
+            primitive_pos_grad[i] = primitive.get_pos_grad()
+            primitive_rot_grad[i] = primitive.get_rot_grad()
+        return x_grad, v_grad, primitive_pos_grad, primitive_rot_grad
 
     def set_state(self, f, state):
         self.setframe(f, *state[:4])
@@ -391,6 +412,24 @@ class MPMSimulator:
                     weight *= w[offset[d]][d]
                 self.grid_m[base + offset] += weight * self.p_mass
 
+    def get_x_nokernel(self):
+        x = np.zeros((self.n_particles,self.dim),dtype=np.float64)
+        for i in range(self.n_particles):
+            for j in range(self.dim):
+                x[i,j] = self.x[self.cur,i][j]
+        return x
+
+    def get_v_nokernel(self):
+        v = np.zeros((self.n_particles,self.dim),dype=np.float64)
+        for i in range(self.n_particles):
+            for j in range(self.dim):
+                v[i,j] = self.v[1,i][j]
+        return v
+
+    def set_x_grad(self,grad,cur):
+        for i in range(self.n_particles):
+            for j in range(self.dim):
+                self.x.grad[cur,i][j] = grad[i,j]
 
     """
     @ti.complex_kernel

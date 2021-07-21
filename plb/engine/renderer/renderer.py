@@ -53,21 +53,21 @@ class Renderer:
 
 
         # taichi part
-        self.color_buffer = ti.Vector.field(3, dtype=ti.f32)
-        self.bbox = ti.Vector.field(3, dtype=ti.f32, shape=2)
+        self.color_buffer = ti.Vector.field(3, dtype=ti.f64)
+        self.bbox = ti.Vector.field(3, dtype=ti.f64, shape=2)
 
-        self.particle_x = ti.Vector.field(3, dtype=ti.f32)
+        self.particle_x = ti.Vector.field(3, dtype=ti.f64)
         self.particle_color = ti.field(dtype=ti.i32)
         self.num_particles = ti.field(ti.i32, shape=())
 
         self.volume = ti.field(dtype=ti.int64)
-        self.sdf = ti.field(dtype=ti.f32)
-        self.sdf_copy = ti.field(dtype=ti.f32)
+        self.sdf = ti.field(dtype=ti.f64)
+        self.sdf_copy = ti.field(dtype=ti.f64)
 
         self.target_res = cfg.target_res
-        self.target_density = ti.field(dtype=ti.f32, shape=self.target_res)
-        self.target_density2 = ti.field(dtype=ti.f32, shape=self.target_res)
-        self.color_vec = ti.Vector.field(3, dtype=ti.f32)
+        self.target_density = ti.field(dtype=ti.f64, shape=self.target_res)
+        self.target_density2 = ti.field(dtype=ti.f64, shape=self.target_res)
+        self.color_vec = ti.Vector.field(3, dtype=ti.f64)
         self.target_density_color = ti.Vector([0.1, 0.3, 0.9])
 
         self.primitives = primitives
@@ -241,7 +241,7 @@ class Renderer:
 
                     sdf_val = inf
                     for i in ti.static(range(len(self.primitives))):
-                        dd = ti.cast(self.primitives[i].sdf(0, pp), ti.f32)
+                        dd = ti.cast(self.primitives[i].sdf(0, pp), ti.f64)
                         if dd < sdf_val:
                             sdf_val = dd
                             sdf_id = i
@@ -253,7 +253,7 @@ class Renderer:
                     closest = dist
                     for i in ti.static(range(len(self.primitives))):
                         if sdf_id == i:
-                            normal = ti.cast(self.primitives[i].normal(0, o + dist*d), ti.f32)
+                            normal = ti.cast(self.primitives[i].normal(0, o + dist*d), ti.f64)
                             color = self.primitives[i].color
                     roughness = 0.
                     material = DIFFUSE
@@ -329,8 +329,8 @@ class Renderer:
     #-----------------------------------------------------
     @ti.func
     def sample_sphere(self):
-        u = ti.random(ti.f32)
-        v = ti.random(ti.f32)
+        u = ti.random(ti.f64)
+        v = ti.random(ti.f64)
         x = u * 2 - 1
         phi = v * 2 * 3.14159265358979
         yz = ti.sqrt(1 - x * x)
@@ -442,9 +442,9 @@ class Renderer:
         for u, v in self.color_buffer:
             pos = self.camera_pos
             d = ti.Vector([
-                (2 * fov * (u + ti.random(ti.f32)) / self.image_res[1] -
+                (2 * fov * (u + ti.random(ti.f64)) / self.image_res[1] -
                  fov * self.aspect_ratio - 1e-5),
-                2 * fov * (v + ti.random(ti.f32)) / self.image_res[1] - fov - 1e-5, -1.0
+                2 * fov * (v + ti.random(ti.f64)) / self.image_res[1] - fov - 1e-5, -1.0
             ])
             d = mat @ d.normalized()
             contrib = self.trace(pos, d)
@@ -511,7 +511,7 @@ class Renderer:
         self.smooth(self.target_density2, self.target_density, self.target_res)
 
     @ti.kernel
-    def fill_target_density(self, val: ti.f32):
+    def fill_target_density(self, val: ti.f64):
         for I in ti.grouped(self.target_density):
             self.target_density[I] = val
             self.target_density2[I] = val

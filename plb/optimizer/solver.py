@@ -1,10 +1,12 @@
 import taichi as ti
 import numpy as np
+import copy
 from yacs.config import CfgNode as CN
 
 from .optim import Optimizer, Adam, Momentum
 from ..engine.taichi_env import TaichiEnv
 from ..config.utils import make_cls_config
+from ..engine.losses import Loss
 
 OPTIMS = {
     'Adam': Adam,
@@ -25,23 +27,38 @@ class Solver:
         # initialize ...
         optim = OPTIMS[self.optim_cfg.type](init_actions, self.optim_cfg)
         # set softness ..
-        env_state = env.get_state()
+        env_state = env.get_state() # initial state
         self.total_steps = 0
+        self.pc_cnt = 0
+        action_buffer = []
 
         def forward(sim_state, action):
             if self.logger is not None:
                 self.logger.reset()
 
-            env.set_state(sim_state, self.cfg.softness, False)
+            env.set_state(sim_state, self.cfg.softness, False) # Set reset the simulator to be initial state
             with ti.Tape(loss=env.loss.loss):
                 for i in range(len(action)):
                     env.step(action[i])
                     self.total_steps += 1
-                    loss_info = env.compute_loss()
-                    if self.logger is not None:
-                        self.logger.step(None, None, loss_info['reward'], None, i==len(action)-1, loss_info)
+                    x = env.get_x()
+                    env.compute_loss()
             loss = env.loss.loss[None]
             return loss, env.primitives.get_grad(len(action))
+
+        def forward_nograd(sim_state,action):
+            if self.logger is not None:
+                self.logger.reset()
+
+            env.set_state(sim_state, self.cfg.softness,False)
+            for i in range(len(action)):
+                env.save_current_state('before/{}'.format(self.pc_cnt))
+                env.step(action[i])
+                action_buffer.append(action[i])
+                self.total_steps += 1
+                self.pc_cnt += 1
+                env.compute_loss()
+                env.save_current_state('after/{}'.format(self.pc_cnt))
 
         best_action = None
         best_loss = 1e10
@@ -53,11 +70,14 @@ class Solver:
             if loss < best_loss:
                 best_loss = loss
                 best_action = actions.copy()
-            actions = optim.step(grad)
+            actions = optim.step(grad) # Here we have access to gradient with respect to all actions how about state
             for callback in callbacks:
                 callback(self, optim, loss, grad)
+            forward_nograd(env_state['state'],actions)
+            print("Iteration: ",iter," Loss:",loss)
 
         env.set_state(**env_state)
+        np.save('../../action.npy',action_buffer)
         return best_action
 
 

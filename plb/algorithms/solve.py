@@ -1,4 +1,5 @@
 import argparse
+
 import random
 import numpy as np
 import torch
@@ -6,14 +7,17 @@ import torch
 from plb.envs import make
 from plb.algorithms.logger import Logger
 
-from plb.algorithms.discor.run_sac import train as train_sac
+from plb.algorithms.sac.run_sac import train as train_sac
 from plb.algorithms.ppo.run_ppo import train_ppo
 from plb.algorithms.TD3.run_td3 import train_td3
 from plb.optimizer.solver import solve_action
 from plb.optimizer.solver_nn import solve_nn
+from plb.optimizer.learn_latent import learn_latent
+from plb.optimizer.human import human_control
+from plb.engine.losses import Loss, StateLoss, ChamferLoss, EMDLoss
 
 RL_ALGOS = ['sac', 'td3', 'ppo']
-DIFF_ALGOS = ['action', 'nn']
+DIFF_ALGOS = ['action', 'nn',]
 
 def set_random_seed(seed):
     random.seed(seed)
@@ -38,6 +42,9 @@ def get_args():
     parser.add_argument("--lr", type=float, default=0.1)
     parser.add_argument("--softness", type=float, default=666.)
     parser.add_argument("--optim", type=str, default='Adam', choices=['Adam', 'Momentum'])
+    parser.add_argument("--srl", action='store_true', default=False)
+    parser.add_argument("--loss",type=str,default='voxel_mae')
+    parser.add_argument("--batch_size",type=int,default=5)
 
     args=parser.parse_args()
 
@@ -53,12 +60,20 @@ def main():
 
     logger = Logger(args.path)
     set_random_seed(args.seed)
-
-    env = make(args.env_name, nn=(args.algo=='nn'), sdf_loss=args.sdf_loss,
-                            density_loss=args.density_loss, contact_loss=args.contact_loss,
+    if args.algo=='one_step':
+        if args.loss == 'voxel_mae':
+            loss_fn = StateLoss
+        elif args.loss == 'chamfer':
+            loss_fn = ChamferLoss
+        elif args.loss == 'emd':
+            loss_fn = EMDLoss
+    else:
+        loss_fn = Loss
+    env = make(args.env_name, nn=(args.algo=='nn'), sdf_loss=args.sdf_loss,loss_fn = loss_fn,
+                            density_loss=args.density_loss, contact_loss=args.contact_loss,full_obs = args.srl,
                             soft_contact_loss=args.soft_contact_loss)
     env.seed(args.seed)
-
+    logger = logger
     if args.algo == 'sac':
         train_sac(env, args.path, logger, args)
     elif args.algo == 'action':
@@ -69,6 +84,10 @@ def main():
         train_td3(env, args.path, logger, args)
     elif args.algo == 'nn':
         solve_nn(env, args.path, logger, args)
+    elif args.algo == 'one_step':
+        learn_latent(env, args.path, args)
+    elif args.algo == 'human':
+        human_control(env,args.path,logger,args)
     else:
         raise NotImplementedError
 

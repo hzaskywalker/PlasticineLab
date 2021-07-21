@@ -1,0 +1,967 @@
+nohup: ignoring input
+2021-07-16 22:56:29.958917: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory; LD_LIBRARY_PATH: :/home/micrl/.mujoco/mjpro150/bin:/usr/local/cuda-10.1/lib64:/usr/local/cuda-10.0/lib64:/home/micrl/.mujoco/mjpro150/bin:/usr/local/cuda-10.1/lib64:/usr/local/cuda-10.0/lib64
+2021-07-16 22:56:29.958949: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+[W 07/16/21 22:56:47.903 25091] [type_check.cpp:visit@100] [$11111] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:56:47.903 25091] [type_check.cpp:visit@101] 
+
+[W 07/16/21 22:56:47.903 25091] [type_check.cpp:visit@100] [$11113] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:56:47.903 25091] [type_check.cpp:visit@101] 
+
+[W 07/16/21 22:56:47.903 25091] [type_check.cpp:visit@100] [$11115] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:56:47.903 25091] [type_check.cpp:visit@101] 
+
+[W 07/16/21 22:56:47.903 25091] [type_check.cpp:visit@100] [$11117] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:56:47.903 25091] [type_check.cpp:visit@101] 
+
+[W 07/16/21 22:56:47.903 25091] [type_check.cpp:visit@100] [$11119] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:56:47.903 25091] [type_check.cpp:visit@101] 
+
+[W 07/16/21 22:56:47.903 25091] [type_check.cpp:visit@100] [$11121] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:56:47.903 25091] [type_check.cpp:visit@101] 
+
+[W 07/16/21 22:56:47.903 25091] [type_check.cpp:visit@100] [$11123] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:56:47.903 25091] [type_check.cpp:visit@101] 
+
+[W 07/16/21 22:56:47.903 25091] [type_check.cpp:visit@100] [$11125] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:56:47.903 25091] [type_check.cpp:visit@101] 
+
+[W 07/16/21 22:56:47.903 25091] [type_check.cpp:visit@100] [$11127] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:56:47.903 25091] [type_check.cpp:visit@101] 
+
+[W 07/16/21 22:56:52.004 25091] [type_check.cpp:visit@100] [$32871] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:56:52.004 25091] [type_check.cpp:visit@101] 
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/mpm_simulator.py", line 198, in grid_op
+    v_out = self.primitives[i].collide(f, I * self.dx, v_out, self.dt)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 50, in decorated
+    return fun.__call__(*args)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 122, in __call__
+    ret = self.compiled(*args)
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/primitive/primive_base.py", line 93, in collide
+    dist = self.sdf(f, grid_pos)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 50, in decorated
+    return fun.__call__(*args)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 122, in __call__
+    ret = self.compiled(*args)
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/primitive/primive_base.py", line 59, in sdf
+    grid_pos = inv_trans(grid_pos, self.position[f], self.rotation[f])
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/util.py", line 163, in wrapped
+    return func(*args, **kwargs)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/impl.py", line 201, in maybe_transform_ti_func_call_to_stmt
+    return func(*args, **kwargs)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/common_ops.py", line 227, in assign
+    return ti.assign(self, other)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/ops.py", line 130, in wrapped
+    return a.element_wise_writeback_binary(imp_foo, b)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/matrix.py", line 179, in element_wise_writeback_binary
+    ret.entries[i] = foo(self.entries[i], other.entries[i])
+
+[W 07/16/21 22:56:52.004 25091] [type_check.cpp:visit@100] [$32873] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:56:52.004 25091] [type_check.cpp:visit@101] 
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/mpm_simulator.py", line 198, in grid_op
+    v_out = self.primitives[i].collide(f, I * self.dx, v_out, self.dt)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 50, in decorated
+    return fun.__call__(*args)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 122, in __call__
+    ret = self.compiled(*args)
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/primitive/primive_base.py", line 93, in collide
+    dist = self.sdf(f, grid_pos)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 50, in decorated
+    return fun.__call__(*args)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 122, in __call__
+    ret = self.compiled(*args)
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/primitive/primive_base.py", line 59, in sdf
+    grid_pos = inv_trans(grid_pos, self.position[f], self.rotation[f])
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/util.py", line 163, in wrapped
+    return func(*args, **kwargs)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/impl.py", line 201, in maybe_transform_ti_func_call_to_stmt
+    return func(*args, **kwargs)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/common_ops.py", line 227, in assign
+    return ti.assign(self, other)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/ops.py", line 130, in wrapped
+    return a.element_wise_writeback_binary(imp_foo, b)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/matrix.py", line 179, in element_wise_writeback_binary
+    ret.entries[i] = foo(self.entries[i], other.entries[i])
+
+[W 07/16/21 22:56:52.004 25091] [type_check.cpp:visit@100] [$32875] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:56:52.004 25091] [type_check.cpp:visit@101] 
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/mpm_simulator.py", line 198, in grid_op
+    v_out = self.primitives[i].collide(f, I * self.dx, v_out, self.dt)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 50, in decorated
+    return fun.__call__(*args)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 122, in __call__
+    ret = self.compiled(*args)
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/primitive/primive_base.py", line 93, in collide
+    dist = self.sdf(f, grid_pos)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 50, in decorated
+    return fun.__call__(*args)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 122, in __call__
+    ret = self.compiled(*args)
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/primitive/primive_base.py", line 59, in sdf
+    grid_pos = inv_trans(grid_pos, self.position[f], self.rotation[f])
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/util.py", line 163, in wrapped
+    return func(*args, **kwargs)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/impl.py", line 201, in maybe_transform_ti_func_call_to_stmt
+    return func(*args, **kwargs)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/common_ops.py", line 227, in assign
+    return ti.assign(self, other)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/ops.py", line 130, in wrapped
+    return a.element_wise_writeback_binary(imp_foo, b)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/matrix.py", line 179, in element_wise_writeback_binary
+    ret.entries[i] = foo(self.entries[i], other.entries[i])
+
+[W 07/16/21 22:56:52.004 25091] [type_check.cpp:visit@100] [$33405] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:56:52.004 25091] [type_check.cpp:visit@101] 
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/mpm_simulator.py", line 198, in grid_op
+    v_out = self.primitives[i].collide(f, I * self.dx, v_out, self.dt)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 50, in decorated
+    return fun.__call__(*args)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 122, in __call__
+    ret = self.compiled(*args)
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/primitive/primive_base.py", line 96, in collide
+    D = self.normal(f, grid_pos)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 50, in decorated
+    return fun.__call__(*args)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 122, in __call__
+    ret = self.compiled(*args)
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/primitive/primive_base.py", line 79, in normal
+    grid_pos = inv_trans(grid_pos, self.position[f], self.rotation[f])
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/util.py", line 163, in wrapped
+    return func(*args, **kwargs)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/impl.py", line 201, in maybe_transform_ti_func_call_to_stmt
+    return func(*args, **kwargs)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/common_ops.py", line 227, in assign
+    return ti.assign(self, other)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/ops.py", line 130, in wrapped
+    return a.element_wise_writeback_binary(imp_foo, b)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/matrix.py", line 179, in element_wise_writeback_binary
+    ret.entries[i] = foo(self.entries[i], other.entries[i])
+
+[W 07/16/21 22:56:52.004 25091] [type_check.cpp:visit@100] [$33407] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:56:52.004 25091] [type_check.cpp:visit@101] 
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/mpm_simulator.py", line 198, in grid_op
+    v_out = self.primitives[i].collide(f, I * self.dx, v_out, self.dt)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 50, in decorated
+    return fun.__call__(*args)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 122, in __call__
+    ret = self.compiled(*args)
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/primitive/primive_base.py", line 96, in collide
+    D = self.normal(f, grid_pos)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 50, in decorated
+    return fun.__call__(*args)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 122, in __call__
+    ret = self.compiled(*args)
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/primitive/primive_base.py", line 79, in normal
+    grid_pos = inv_trans(grid_pos, self.position[f], self.rotation[f])
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/util.py", line 163, in wrapped
+    return func(*args, **kwargs)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/impl.py", line 201, in maybe_transform_ti_func_call_to_stmt
+    return func(*args, **kwargs)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/common_ops.py", line 227, in assign
+    return ti.assign(self, other)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/ops.py", line 130, in wrapped
+    return a.element_wise_writeback_binary(imp_foo, b)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/matrix.py", line 179, in element_wise_writeback_binary
+    ret.entries[i] = foo(self.entries[i], other.entries[i])
+
+[W 07/16/21 22:56:52.004 25091] [type_check.cpp:visit@100] [$33409] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:56:52.004 25091] [type_check.cpp:visit@101] 
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/mpm_simulator.py", line 198, in grid_op
+    v_out = self.primitives[i].collide(f, I * self.dx, v_out, self.dt)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 50, in decorated
+    return fun.__call__(*args)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 122, in __call__
+    ret = self.compiled(*args)
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/primitive/primive_base.py", line 96, in collide
+    D = self.normal(f, grid_pos)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 50, in decorated
+    return fun.__call__(*args)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 122, in __call__
+    ret = self.compiled(*args)
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/primitive/primive_base.py", line 79, in normal
+    grid_pos = inv_trans(grid_pos, self.position[f], self.rotation[f])
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/util.py", line 163, in wrapped
+    return func(*args, **kwargs)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/impl.py", line 201, in maybe_transform_ti_func_call_to_stmt
+    return func(*args, **kwargs)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/common_ops.py", line 227, in assign
+    return ti.assign(self, other)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/ops.py", line 130, in wrapped
+    return a.element_wise_writeback_binary(imp_foo, b)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/matrix.py", line 179, in element_wise_writeback_binary
+    ret.entries[i] = foo(self.entries[i], other.entries[i])
+
+[W 07/16/21 22:57:13.799 25091] [type_check.cpp:visit@100] [$85167] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:57:13.799 25091] [type_check.cpp:visit@101] 
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/mpm_simulator.py", line 198, in grid_op
+    v_out = self.primitives[i].collide(f, I * self.dx, v_out, self.dt)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 50, in decorated
+    return fun.__call__(*args)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 122, in __call__
+    ret = self.compiled(*args)
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/primitive/primive_base.py", line 93, in collide
+    dist = self.sdf(f, grid_pos)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 50, in decorated
+    return fun.__call__(*args)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 122, in __call__
+    ret = self.compiled(*args)
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/primitive/primive_base.py", line 59, in sdf
+    grid_pos = inv_trans(grid_pos, self.position[f], self.rotation[f])
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/util.py", line 163, in wrapped
+    return func(*args, **kwargs)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/impl.py", line 201, in maybe_transform_ti_func_call_to_stmt
+    return func(*args, **kwargs)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/common_ops.py", line 227, in assign
+    return ti.assign(self, other)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/ops.py", line 130, in wrapped
+    return a.element_wise_writeback_binary(imp_foo, b)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/matrix.py", line 179, in element_wise_writeback_binary
+    ret.entries[i] = foo(self.entries[i], other.entries[i])
+
+[W 07/16/21 22:57:13.799 25091] [type_check.cpp:visit@100] [$85169] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:57:13.799 25091] [type_check.cpp:visit@101] 
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/mpm_simulator.py", line 198, in grid_op
+    v_out = self.primitives[i].collide(f, I * self.dx, v_out, self.dt)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 50, in decorated
+    return fun.__call__(*args)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 122, in __call__
+    ret = self.compiled(*args)
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/primitive/primive_base.py", line 93, in collide
+    dist = self.sdf(f, grid_pos)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 50, in decorated
+    return fun.__call__(*args)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 122, in __call__
+    ret = self.compiled(*args)
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/primitive/primive_base.py", line 59, in sdf
+    grid_pos = inv_trans(grid_pos, self.position[f], self.rotation[f])
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/util.py", line 163, in wrapped
+    return func(*args, **kwargs)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/impl.py", line 201, in maybe_transform_ti_func_call_to_stmt
+    return func(*args, **kwargs)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/common_ops.py", line 227, in assign
+    return ti.assign(self, other)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/ops.py", line 130, in wrapped
+    return a.element_wise_writeback_binary(imp_foo, b)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/matrix.py", line 179, in element_wise_writeback_binary
+    ret.entries[i] = foo(self.entries[i], other.entries[i])
+
+[W 07/16/21 22:57:13.799 25091] [type_check.cpp:visit@100] [$85171] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:57:13.799 25091] [type_check.cpp:visit@101] 
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/mpm_simulator.py", line 198, in grid_op
+    v_out = self.primitives[i].collide(f, I * self.dx, v_out, self.dt)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 50, in decorated
+    return fun.__call__(*args)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 122, in __call__
+    ret = self.compiled(*args)
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/primitive/primive_base.py", line 93, in collide
+    dist = self.sdf(f, grid_pos)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 50, in decorated
+    return fun.__call__(*args)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 122, in __call__
+    ret = self.compiled(*args)
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/primitive/primive_base.py", line 59, in sdf
+    grid_pos = inv_trans(grid_pos, self.position[f], self.rotation[f])
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/util.py", line 163, in wrapped
+    return func(*args, **kwargs)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/impl.py", line 201, in maybe_transform_ti_func_call_to_stmt
+    return func(*args, **kwargs)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/common_ops.py", line 227, in assign
+    return ti.assign(self, other)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/ops.py", line 130, in wrapped
+    return a.element_wise_writeback_binary(imp_foo, b)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/matrix.py", line 179, in element_wise_writeback_binary
+    ret.entries[i] = foo(self.entries[i], other.entries[i])
+
+[W 07/16/21 22:57:13.800 25091] [type_check.cpp:visit@100] [$85701] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:57:13.800 25091] [type_check.cpp:visit@101] 
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/mpm_simulator.py", line 198, in grid_op
+    v_out = self.primitives[i].collide(f, I * self.dx, v_out, self.dt)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 50, in decorated
+    return fun.__call__(*args)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 122, in __call__
+    ret = self.compiled(*args)
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/primitive/primive_base.py", line 96, in collide
+    D = self.normal(f, grid_pos)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 50, in decorated
+    return fun.__call__(*args)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 122, in __call__
+    ret = self.compiled(*args)
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/primitive/primive_base.py", line 79, in normal
+    grid_pos = inv_trans(grid_pos, self.position[f], self.rotation[f])
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/util.py", line 163, in wrapped
+    return func(*args, **kwargs)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/impl.py", line 201, in maybe_transform_ti_func_call_to_stmt
+    return func(*args, **kwargs)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/common_ops.py", line 227, in assign
+    return ti.assign(self, other)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/ops.py", line 130, in wrapped
+    return a.element_wise_writeback_binary(imp_foo, b)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/matrix.py", line 179, in element_wise_writeback_binary
+    ret.entries[i] = foo(self.entries[i], other.entries[i])
+
+[W 07/16/21 22:57:13.800 25091] [type_check.cpp:visit@100] [$85703] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:57:13.800 25091] [type_check.cpp:visit@101] 
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/mpm_simulator.py", line 198, in grid_op
+    v_out = self.primitives[i].collide(f, I * self.dx, v_out, self.dt)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 50, in decorated
+    return fun.__call__(*args)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 122, in __call__
+    ret = self.compiled(*args)
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/primitive/primive_base.py", line 96, in collide
+    D = self.normal(f, grid_pos)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 50, in decorated
+    return fun.__call__(*args)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 122, in __call__
+    ret = self.compiled(*args)
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/primitive/primive_base.py", line 79, in normal
+    grid_pos = inv_trans(grid_pos, self.position[f], self.rotation[f])
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/util.py", line 163, in wrapped
+    return func(*args, **kwargs)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/impl.py", line 201, in maybe_transform_ti_func_call_to_stmt
+    return func(*args, **kwargs)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/common_ops.py", line 227, in assign
+    return ti.assign(self, other)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/ops.py", line 130, in wrapped
+    return a.element_wise_writeback_binary(imp_foo, b)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/matrix.py", line 179, in element_wise_writeback_binary
+    ret.entries[i] = foo(self.entries[i], other.entries[i])
+
+[W 07/16/21 22:57:13.800 25091] [type_check.cpp:visit@100] [$85705] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:57:13.800 25091] [type_check.cpp:visit@101] 
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/mpm_simulator.py", line 198, in grid_op
+    v_out = self.primitives[i].collide(f, I * self.dx, v_out, self.dt)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 50, in decorated
+    return fun.__call__(*args)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 122, in __call__
+    ret = self.compiled(*args)
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/primitive/primive_base.py", line 96, in collide
+    D = self.normal(f, grid_pos)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 50, in decorated
+    return fun.__call__(*args)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/kernel_impl.py", line 122, in __call__
+    ret = self.compiled(*args)
+  File "/home/micrl/chensirui/PlasticineLab/plb/engine/primitive/primive_base.py", line 79, in normal
+    grid_pos = inv_trans(grid_pos, self.position[f], self.rotation[f])
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/util.py", line 163, in wrapped
+    return func(*args, **kwargs)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/impl.py", line 201, in maybe_transform_ti_func_call_to_stmt
+    return func(*args, **kwargs)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/common_ops.py", line 227, in assign
+    return ti.assign(self, other)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/ops.py", line 130, in wrapped
+    return a.element_wise_writeback_binary(imp_foo, b)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/taichi/lang/matrix.py", line 179, in element_wise_writeback_binary
+    ret.entries[i] = foo(self.entries[i], other.entries[i])
+
+[W 07/16/21 22:57:14.110 25091] [type_check.cpp:visit@100] [$89319] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:57:14.110 25091] [type_check.cpp:visit@101] 
+
+[W 07/16/21 22:57:14.110 25091] [type_check.cpp:visit@100] [$89337] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:57:14.110 25091] [type_check.cpp:visit@101] 
+
+[W 07/16/21 22:57:14.110 25091] [type_check.cpp:visit@100] [$89463] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:57:14.110 25091] [type_check.cpp:visit@101] 
+
+[W 07/16/21 22:57:14.110 25091] [type_check.cpp:visit@100] [$89487] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:57:14.110 25091] [type_check.cpp:visit@101] 
+
+[W 07/16/21 22:57:14.110 25091] [type_check.cpp:visit@100] [$89575] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:57:14.110 25091] [type_check.cpp:visit@101] 
+
+[W 07/16/21 22:57:14.111 25091] [type_check.cpp:visit@100] [$90346] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:57:14.111 25091] [type_check.cpp:visit@101] 
+
+[W 07/16/21 22:57:14.111 25091] [type_check.cpp:visit@100] [$90371] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:57:14.111 25091] [type_check.cpp:visit@101] 
+
+[W 07/16/21 22:57:14.111 25091] [type_check.cpp:visit@100] [$90458] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:57:14.111 25091] [type_check.cpp:visit@101] 
+
+[W 07/16/21 22:57:14.111 25091] [type_check.cpp:visit@100] [$90812] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:57:14.111 25091] [type_check.cpp:visit@101] 
+
+[W 07/16/21 22:57:14.111 25091] [type_check.cpp:visit@100] [$90827] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:57:14.111 25091] [type_check.cpp:visit@101] 
+
+[W 07/16/21 22:57:14.111 25091] [type_check.cpp:visit@100] [$90842] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:57:14.111 25091] [type_check.cpp:visit@101] 
+
+[W 07/16/21 22:57:27.498 25091] [type_check.cpp:visit@100] [$131560] Local store may lose precision (target = f32, value = f64) at
+[W 07/16/21 22:57:27.498 25091] [type_check.cpp:visit@101] 
+
+[Taichi] mode=release
+[Taichi] preparing sandbox at /tmp/taichi-xn0w_wh4
+[Taichi] version 0.7.23, llvm 10.0.0, commit 0b89df86, linux, python 3.8.10
+Loaded compiled 3D CUDA chamfer distance
+[Taichi] Starting on arch=cuda
+Building primitive
+action:
+  dim: 7
+  scale: (0.02, 0.02, 0.02, 0.04, 0.04, 0.04, 0.02)
+color: (0.8, 0.8, 0.8)
+friction: 10.0
+h: 0.2
+init_gap: 0.06
+init_pos: (0.5, 0.15, 0.5)
+init_rot: (1.0, 0.0, 0.0, 0.0)
+lower_bound: (0.0, 0.0, 0.0)
+minimal_gap: 0.06
+r: 0.02
+shape: Chopsticks
+upper_bound: (1.0, 1.0, 1.0)
+variations: None
+{'width': (0.04, 0.04, 0.6), 'init_pos': (0.5, 0.02, 0.5), 'color': 100, 'n_particles': 8192}
+Number of particles:  8192
+Initialize Renderer
+bake_size: 6  
+camera_pos: (0.5, 1.2, 4.0)  
+camera_rot: (0.2, 0)  
+dx: 0.006666666666666667  
+image_res: (512, 512)  
+light_direction: (2.0, 1.0, 0.7)  
+max_num_particles: 1000000  
+max_ray_depth: 2  
+sdf_threshold: 0.20720000000000002  
+spp: 50  
+target_res: (64, 64, 64)  
+use_directional_light: True  
+use_roulette: False  
+voxel_res: (168, 168, 168)
+[Taichi] materializing...
+TaichiEnv Number of Particles: 8192
+Batch: 1 Loss:  0.029032621160149576
+Batch: 2 Loss:  0.027034459449350835
+Batch: 3 Loss:  0.026525141112506388
+Batch: 4 Loss:  0.026209996826946736
+Batch: 5 Loss:  0.02586577208712697
+Batch: 6 Loss:  0.02549935579299927
+Batch: 7 Loss:  0.025118197593837977
+Batch: 8 Loss:  0.02482533436268568
+Batch: 9 Loss:  0.024393749423325062
+Batch: 10 Loss:  0.02390799466520548
+Batch: 11 Loss:  0.023349923174828292
+Batch: 12 Loss:  0.02276501413434744
+Batch: 13 Loss:  0.022132754512131213
+Batch: 14 Loss:  0.02143209334462881
+Batch: 15 Loss:  0.020605341251939534
+Batch: 16 Loss:  0.01991002159193158
+Batch: 17 Loss:  0.019257601350545883
+Batch: 18 Loss:  0.018652926664799452
+Batch: 19 Loss:  0.01808078829199076
+Batch: 20 Loss:  0.01770221870392561
+Batch: 21 Loss:  0.017097916174679994
+Batch: 22 Loss:  0.0167522051371634
+Batch: 23 Loss:  0.01638954598456621
+Batch: 24 Loss:  0.016083787102252244
+Batch: 25 Loss:  0.015824360866099597
+Batch: 26 Loss:  0.015468423394486308
+Batch: 27 Loss:  0.015168217523023487
+Batch: 28 Loss:  0.015081855235621333
+Batch: 29 Loss:  0.014840936847031116
+Batch: 30 Loss:  0.014450908824801444
+Batch: 31 Loss:  0.014181735739111901
+Batch: 32 Loss:  0.01408204180188477
+Batch: 33 Loss:  0.01389285372570157
+Batch: 34 Loss:  0.01377626764588058
+Batch: 35 Loss:  0.013612912688404321
+Batch: 36 Loss:  0.013462433824315667
+Batch: 37 Loss:  0.013288953946903348
+Batch: 38 Loss:  0.013067001989111305
+Batch: 39 Loss:  0.01294176490046084
+Batch: 40 Loss:  0.012874094536527991
+Batch: 41 Loss:  0.012827191920951008
+Batch: 42 Loss:  0.012667125184088945
+Batch: 43 Loss:  0.012549437396228314
+Batch: 44 Loss:  0.012608559988439082
+Batch: 45 Loss:  0.012431533355265856
+Batch: 46 Loss:  0.012312316056340932
+Batch: 47 Loss:  0.012196945026516914
+Batch: 48 Loss:  0.012123714294284582
+Batch: 49 Loss:  0.012030265480279922
+Loss:  0.01189806591719389
+Batch: 50 Loss:  0.011897101905196905
+Batch: 51 Loss:  0.011828924575820566
+Batch: 52 Loss:  0.011835603136569261
+Batch: 53 Loss:  0.011722044227644801
+Batch: 54 Loss:  0.011677554063498973
+Batch: 55 Loss:  0.01149503206834197
+Batch: 56 Loss:  0.011447382904589177
+Batch: 57 Loss:  0.011386305699124933
+Batch: 58 Loss:  0.011286104936152697
+Batch: 59 Loss:  0.011202177125960588
+Batch: 60 Loss:  0.011169016966596246
+Batch: 61 Loss:  0.011120202671736478
+Batch: 62 Loss:  0.01097121024504304
+Batch: 63 Loss:  0.01090064630843699
+Batch: 64 Loss:  0.01102931322529912
+Batch: 65 Loss:  0.010977167822420596
+Batch: 66 Loss:  0.01077029318548739
+Batch: 67 Loss:  0.010683581745252014
+Batch: 68 Loss:  0.010810599382966756
+Batch: 69 Loss:  0.010806832136586309
+Batch: 70 Loss:  0.010495446901768447
+Batch: 71 Loss:  0.010432821186259388
+Batch: 72 Loss:  0.010546760587021708
+Batch: 73 Loss:  0.010507709300145506
+Batch: 74 Loss:  0.010338424099609255
+Batch: 75 Loss:  0.01027877740561962
+Batch: 76 Loss:  0.010415099607780576
+Batch: 77 Loss:  0.010366658214479685
+Batch: 78 Loss:  0.010165923275053501
+Batch: 79 Loss:  0.010096487775444984
+Batch: 80 Loss:  0.010219845082610845
+Batch: 81 Loss:  0.01017804155126214
+Batch: 82 Loss:  0.010029023187234998
+Batch: 83 Loss:  0.01001053610816598
+Batch: 84 Loss:  0.01014726455323398
+Batch: 85 Loss:  0.010138691496104002
+Batch: 86 Loss:  0.009975809417665005
+Batch: 87 Loss:  0.009975710418075323
+Batch: 88 Loss:  0.010135257942602038
+Batch: 89 Loss:  0.010092237219214439
+Batch: 90 Loss:  0.009943195898085833
+Batch: 91 Loss:  0.009953547921031713
+Batch: 92 Loss:  0.01004262613132596
+Batch: 93 Loss:  0.010011166241019965
+Batch: 94 Loss:  0.009963102778419853
+Batch: 95 Loss:  0.00994550259783864
+Batch: 96 Loss:  0.009995497530326247
+Batch: 97 Loss:  0.009994210163131356
+Batch: 98 Loss:  0.009902321174740792
+Batch: 99 Loss:  0.009893770050257444
+Loss:  0.009961565025150776
+Batch: 100 Loss:  0.00996156008914113
+Batch: 101 Loss:  0.009942338336259127
+Batch: 102 Loss:  0.009854258131235838
+Batch: 103 Loss:  0.009825819171965122
+Batch: 104 Loss:  0.009867679001763463
+Batch: 105 Loss:  0.00983441504649818
+Batch: 106 Loss:  0.009765944397076964
+Batch: 107 Loss:  0.009756049513816834
+Batch: 108 Loss:  0.009850183688104152
+Batch: 109 Loss:  0.009852999215945601
+Batch: 110 Loss:  0.009744817391037941
+Batch: 111 Loss:  0.009701685979962349
+Batch: 112 Loss:  0.009718489274382592
+Batch: 113 Loss:  0.009677819442003965
+Batch: 114 Loss:  0.009633857244625687
+Batch: 115 Loss:  0.009643798461183906
+Batch: 116 Loss:  0.009623971115797759
+Batch: 117 Loss:  0.00962104694917798
+Batch: 118 Loss:  0.009646016918122769
+Batch: 119 Loss:  0.009628965007141232
+Batch: 120 Loss:  0.009576557762920856
+Batch: 121 Loss:  0.009570089634507895
+Batch: 122 Loss:  0.009559710090979934
+Batch: 123 Loss:  0.00955051202327013
+Batch: 124 Loss:  0.00950611219741404
+Batch: 125 Loss:  0.009491136390715837
+Batch: 126 Loss:  0.009523408906534313
+Batch: 127 Loss:  0.00951020922511816
+Batch: 128 Loss:  0.009471633844077587
+Batch: 129 Loss:  0.009450128627941012
+Batch: 130 Loss:  0.009490824723616242
+Batch: 131 Loss:  0.009473244938999415
+Batch: 132 Loss:  0.00941944750957191
+Batch: 133 Loss:  0.009408369893208146
+Batch: 134 Loss:  0.009450995735824108
+Batch: 135 Loss:  0.009434407390654088
+Batch: 136 Loss:  0.00941465087234974
+Batch: 137 Loss:  0.009406436141580344
+Batch: 138 Loss:  0.009478940535336733
+Batch: 139 Loss:  0.00943151032552123
+Batch: 140 Loss:  0.009394397540017963
+Batch: 141 Loss:  0.009359267726540565
+Batch: 142 Loss:  0.009433450549840927
+Batch: 143 Loss:  0.009401784045621753
+Batch: 144 Loss:  0.00937341693788767
+Batch: 145 Loss:  0.00935735204257071
+Batch: 146 Loss:  0.009410156030207872
+Batch: 147 Loss:  0.009398332377895714
+Batch: 148 Loss:  0.009330387739464641
+Batch: 149 Loss:  0.009344952832907438
+Loss:  0.009411032311618328
+Batch: 150 Loss:  0.009358104690909386
+Batch: 151 Loss:  0.00937188696116209
+Batch: 152 Loss:  0.009292760863900185
+Batch: 153 Loss:  0.009289262210950255
+Batch: 154 Loss:  0.009395637875422835
+Batch: 155 Loss:  0.009384823869913817
+Batch: 156 Loss:  0.009250563615933061
+Batch: 157 Loss:  0.009225237555801869
+Batch: 158 Loss:  0.009349196124821902
+Batch: 159 Loss:  0.009346422832459211
+Batch: 160 Loss:  0.009208169672638178
+Batch: 161 Loss:  0.009197724610567093
+Batch: 162 Loss:  0.009331458900123834
+Batch: 163 Loss:  0.009334979625418783
+Batch: 164 Loss:  0.009206651337444782
+Batch: 165 Loss:  0.00919642485678196
+Batch: 166 Loss:  0.009334716247394681
+Batch: 167 Loss:  0.009319631569087505
+Batch: 168 Loss:  0.009176969155669212
+Batch: 169 Loss:  0.00921269143000245
+Batch: 170 Loss:  0.009292801702395081
+Batch: 171 Loss:  0.009294946445152164
+Batch: 172 Loss:  0.009206848265603185
+Batch: 173 Loss:  0.00920394081622362
+Batch: 174 Loss:  0.009290925832465291
+Batch: 175 Loss:  0.009288711613044143
+Batch: 176 Loss:  0.009205564530566335
+Batch: 177 Loss:  0.009198150597512722
+Batch: 178 Loss:  0.009266693796962499
+Batch: 179 Loss:  0.00922840037383139
+Batch: 180 Loss:  0.009204804990440607
+Batch: 181 Loss:  0.009161629108712077
+Batch: 182 Loss:  0.009189549786970019
+Batch: 183 Loss:  0.009179347287863493
+Batch: 184 Loss:  0.00915350397117436
+Batch: 185 Loss:  0.009158870577812195
+Batch: 186 Loss:  0.009119681734591722
+Batch: 187 Loss:  0.009137374721467495
+Batch: 188 Loss:  0.00913936048746109
+Batch: 189 Loss:  0.009111794224008919
+Batch: 190 Loss:  0.009068822721019387
+Batch: 191 Loss:  0.009055020892992616
+Batch: 192 Loss:  0.009094584733247757
+Batch: 193 Loss:  0.009085712162777782
+Batch: 194 Loss:  0.009047085978090763
+Batch: 195 Loss:  0.009025244414806366
+Batch: 196 Loss:  0.009108028607442975
+Batch: 197 Loss:  0.009100786969065666
+Batch: 198 Loss:  0.009042298886924982
+Batch: 199 Loss:  0.009025685163214803
+Loss:  0.009093343280255795
+Batch: 200 Loss:  0.009098740993067622
+Batch: 201 Loss:  0.009088417002931237
+Batch: 202 Loss:  0.00904134870506823
+Batch: 203 Loss:  0.009004143346101046
+Batch: 204 Loss:  0.009032967546954752
+Batch: 205 Loss:  0.009041911177337169
+Batch: 206 Loss:  0.009016300784423947
+Batch: 207 Loss:  0.009020514506846666
+Batch: 208 Loss:  0.009025781974196434
+Batch: 209 Loss:  0.009009975101798772
+Batch: 210 Loss:  0.008990374160930514
+Batch: 211 Loss:  0.008978717774152756
+Batch: 212 Loss:  0.008984557073563337
+Batch: 213 Loss:  0.008943517366424203
+Batch: 214 Loss:  0.0089476409368217
+Batch: 215 Loss:  0.008937895437702537
+Batch: 216 Loss:  0.008947370853275061
+Batch: 217 Loss:  0.008916845032945275
+Batch: 218 Loss:  0.008948768302798272
+Batch: 219 Loss:  0.008936016540974378
+Batch: 220 Loss:  0.00893045188859105
+Batch: 221 Loss:  0.008924770960584283
+Batch: 222 Loss:  0.008939264668151736
+Batch: 223 Loss:  0.008934394875541329
+Batch: 224 Loss:  0.008929613558575512
+Batch: 225 Loss:  0.008909940533339978
+Batch: 226 Loss:  0.008923969464376569
+Batch: 227 Loss:  0.008922415086999536
+Batch: 228 Loss:  0.008916977047920226
+Batch: 229 Loss:  0.00890765101648867
+Batch: 230 Loss:  0.008903575595468283
+Batch: 231 Loss:  0.008908039750531315
+Batch: 232 Loss:  0.008893747115507722
+Batch: 233 Loss:  0.008889288362115621
+Batch: 234 Loss:  0.008944463171064853
+Batch: 235 Loss:  0.008936447044834494
+Batch: 236 Loss:  0.008864950248971581
+Batch: 237 Loss:  0.008855050196871161
+Batch: 238 Loss:  0.008932961104437708
+Batch: 239 Loss:  0.008901356998831034
+Batch: 240 Loss:  0.00888551501557231
+Batch: 241 Loss:  0.008902320684865118
+Batch: 242 Loss:  0.008904270641505719
+Batch: 243 Loss:  0.008909020619466902
+Batch: 244 Loss:  0.008882051985710859
+Batch: 245 Loss:  0.008881370350718499
+Batch: 246 Loss:  0.008900453615933657
+Batch: 247 Loss:  0.00891020274721086
+Batch: 248 Loss:  0.008871076442301274
+Batch: 249 Loss:  0.008908290462568403
+Loss:  0.00886891596019268
+Batch: 250 Loss:  0.008890893403440714
+Batch: 251 Loss:  0.008890720503404736
+Batch: 252 Loss:  0.008823067136108875
+Batch: 253 Loss:  0.008835363807156682
+Batch: 254 Loss:  0.008887661574408411
+Batch: 255 Loss:  0.008880594791844488
+Batch: 256 Loss:  0.008840292552486062
+Batch: 257 Loss:  0.008827889757230877
+Batch: 258 Loss:  0.008881513169035316
+Batch: 259 Loss:  0.008850498450919985
+Batch: 260 Loss:  0.008802891615778208
+Batch: 261 Loss:  0.008813366247341036
+Batch: 262 Loss:  0.008858518255874515
+Batch: 263 Loss:  0.008833154570311308
+Batch: 264 Loss:  0.008785774558782577
+Batch: 265 Loss:  0.00876811840571463
+Batch: 266 Loss:  0.008822269923985004
+Batch: 267 Loss:  0.00882799350656569
+Batch: 268 Loss:  0.008793157525360584
+Batch: 269 Loss:  0.008807137608528137
+Batch: 270 Loss:  0.00882417312823236
+Batch: 271 Loss:  0.00880167568102479
+Batch: 272 Loss:  0.008763617370277643
+Batch: 273 Loss:  0.008769081113860011
+Batch: 274 Loss:  0.008787528518587351
+Batch: 275 Loss:  0.008796345815062523
+Batch: 276 Loss:  0.008746783947572112
+Batch: 277 Loss:  0.008761245012283325
+Batch: 278 Loss:  0.008771323040127755
+Batch: 279 Loss:  0.008760001789778472
+Batch: 280 Loss:  0.008743973029777408
+Batch: 281 Loss:  0.008735449705272912
+Batch: 282 Loss:  0.00878480919636786
+Batch: 283 Loss:  0.008763703098520637
+Batch: 284 Loss:  0.008735415944829582
+Batch: 285 Loss:  0.00875377794727683
+Batch: 286 Loss:  0.008791175717487932
+Batch: 287 Loss:  0.008798551931977271
+Batch: 288 Loss:  0.008717751083895563
+Batch: 289 Loss:  0.008735116478055716
+Batch: 290 Loss:  0.008806683821603656
+Batch: 291 Loss:  0.008766718907281756
+Batch: 292 Loss:  0.008741106698289513
+Batch: 293 Loss:  0.008719055308029055
+Batch: 294 Loss:  0.008760516671463848
+Batch: 295 Loss:  0.008755783271044492
+Batch: 296 Loss:  0.008719677524641156
+Batch: 297 Loss:  0.008714167028665542
+Batch: 298 Loss:  0.008737596636638045
+Batch: 299 Loss:  0.008732224395498634
+Loss:  0.008759291842579842
+Batch: 300 Loss:  0.008728061942383647
+Batch: 301 Loss:  0.008742422331124544
+Batch: 302 Loss:  0.008730833511799574
+Batch: 303 Loss:  0.008726777601987123
+Batch: 304 Loss:  0.008715300727635622
+Batch: 305 Loss:  0.008746279962360859
+Batch: 306 Loss:  0.008739353669807316
+Batch: 307 Loss:  0.008736858610063791
+Batch: 308 Loss:  0.008721955632790924
+Batch: 309 Loss:  0.008719099592417479
+Batch: 310 Loss:  0.008713132049888373
+Batch: 311 Loss:  0.008728942228481173
+Batch: 312 Loss:  0.008737908769398927
+Batch: 313 Loss:  0.008726537972688676
+Batch: 314 Loss:  0.008740758383646607
+Batch: 315 Loss:  0.00872870055027306
+Batch: 316 Loss:  0.008717115456238388
+Batch: 317 Loss:  0.008725068485364317
+Batch: 318 Loss:  0.008735458552837371
+Batch: 319 Loss:  0.00872285827063024
+Batch: 320 Loss:  0.008690487826243043
+Batch: 321 Loss:  0.008699148800224066
+Batch: 322 Loss:  0.00872229658998549
+Batch: 323 Loss:  0.008718190109357237
+Batch: 324 Loss:  0.008713036961853503
+Batch: 325 Loss:  0.008728606021031737
+Batch: 326 Loss:  0.008688939036801457
+Batch: 327 Loss:  0.00869782050140202
+Batch: 328 Loss:  0.00872602961026132
+Batch: 329 Loss:  0.008729824237525463
+Batch: 330 Loss:  0.008726836228743196
+Batch: 331 Loss:  0.00871449951082468
+Batch: 332 Loss:  0.00868688030168414
+Batch: 333 Loss:  0.00871396902948618
+Batch: 334 Loss:  0.008709853049367666
+Batch: 335 Loss:  0.008695737970992923
+Batch: 336 Loss:  0.008692389214411378
+Batch: 337 Loss:  0.008671332616358995
+Batch: 338 Loss:  0.008710241271182894
+Batch: 339 Loss:  0.0086903833784163
+Batch: 340 Loss:  0.008681161841377617
+Batch: 341 Loss:  0.008669334929436445
+Batch: 342 Loss:  0.008702917583286762
+Batch: 343 Loss:  0.008704067580401898
+Batch: 344 Loss:  0.008679113816469908
+Batch: 345 Loss:  0.008709326107054948
+Batch: 346 Loss:  0.008703709114342928
+Batch: 347 Loss:  0.00869699907489121
+Batch: 348 Loss:  0.008653819561004639
+Batch: 349 Loss:  0.008645881479606033
+Loss:  0.008744070306420326
+Batch: 350 Loss:  0.008726464724168182
+Batch: 351 Loss:  0.008738622441887856
+Batch: 352 Loss:  0.008652049954980612
+Batch: 353 Loss:  0.008670421876013279
+Batch: 354 Loss:  0.008701331680640578
+Batch: 355 Loss:  0.008685069205239416
+Batch: 356 Loss:  0.008654250856488943
+Batch: 357 Loss:  0.008659867383539677
+Batch: 358 Loss:  0.008673866232857107
+Batch: 359 Loss:  0.00869930158369243
+Batch: 360 Loss:  0.008645821129903197
+Batch: 361 Loss:  0.008647266449406743
+Batch: 362 Loss:  0.00865684961900115
+Batch: 363 Loss:  0.008675609109923243
+Batch: 364 Loss:  0.008630515914410353
+Batch: 365 Loss:  0.008651221869513392
+Batch: 366 Loss:  0.008666254114359617
+Batch: 367 Loss:  0.008667017333209515
+Batch: 368 Loss:  0.008657367900013924
+Batch: 369 Loss:  0.008631950011476874
+Batch: 370 Loss:  0.008668120624497533
+Batch: 371 Loss:  0.008675789227709174
+Batch: 372 Loss:  0.00860194256529212
+Batch: 373 Loss:  0.00862677120603621
+Batch: 374 Loss:  0.00867614704184234
+Batch: 375 Loss:  0.008658681157976389
+Batch: 376 Loss:  0.00863076476380229
+Batch: 377 Loss:  0.008621469466015696
+Batch: 378 Loss:  0.008690665755420924
+Batch: 379 Loss:  0.008657082077115774
+Batch: 380 Loss:  0.008626544335857033
+Batch: 381 Loss:  0.008621707186102867
+Batch: 382 Loss:  0.00866859294474125
+Batch: 383 Loss:  0.008667887933552266
+Batch: 384 Loss:  0.008610703982412815
+Batch: 385 Loss:  0.008595233876258134
+Batch: 386 Loss:  0.008662161510437727
+Batch: 387 Loss:  0.008664247300475835
+Batch: 388 Loss:  0.008575076516717673
+Batch: 389 Loss:  0.008583075599744916
+Batch: 390 Loss:  0.008660469064489007
+Batch: 391 Loss:  0.008646337548270822
+Batch: 392 Loss:  /home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/gym/logger.py:30: UserWarning: [33mWARN: Box bound precision lowered by casting to float32[0m
+  warnings.warn(colorize('%s: %s'%('WARN', msg % args), 'yellow'))
+Traceback (most recent call last):
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/torch/serialization.py", line 328, in save
+    _legacy_save(obj, opened_file, pickle_module, pickle_protocol)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/torch/serialization.py", line 396, in _legacy_save
+    pickle_module.dump(MAGIC_NUMBER, f, protocol=pickle_protocol)
+TypeError: file must have a 'write' attribute
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/runpy.py", line 194, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/micrl/chensirui/PlasticineLab/plb/algorithms/solve.py", line 91, in <module>
+    main()
+  File "/home/micrl/chensirui/PlasticineLab/plb/algorithms/solve.py", line 86, in main
+    learn_latent(env, args.path, args)
+  File "/home/micrl/chensirui/PlasticineLab/plb/optimizer/learn_latent.py", line 151, in learn_latent
+    torch.save("pretrain_model/weight_after1.pth",model.state_dict())
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/torch/serialization.py", line 328, in save
+    _legacy_save(obj, opened_file, pickle_module, pickle_protocol)
+  File "/home/micrl/anaconda2/envs/taichi/lib/python3.8/site-packages/torch/serialization.py", line 207, in __exit__
+    self.file_like.flush()
+AttributeError: 'collections.OrderedDict' object has no attribute 'flush'
+0.008570129983127117
+Batch: 393 Loss:  0.008551139337942004
+Batch: 394 Loss:  0.008672834979370237
+Batch: 395 Loss:  0.008660305710509419
+Batch: 396 Loss:  0.008625991549342871
+Batch: 397 Loss:  0.008607091754674912
+Batch: 398 Loss:  0.008635876793414354
+Batch: 399 Loss:  0.008618966862559318
+Loss:  0.008547615259885788
+Batch: 400 Loss:  0.00858055497519672
+Batch: 401 Loss:  0.008582333708181978
+Batch: 402 Loss:  0.008643927471712231
+Batch: 403 Loss:  0.008601441700011491
+Batch: 404 Loss:  0.008579883025959134
+Batch: 405 Loss:  0.008572807209566236
+Batch: 406 Loss:  0.0086393385194242
+Batch: 407 Loss:  0.008615310210734606
+Batch: 408 Loss:  0.008568717492744326
+Batch: 409 Loss:  0.008575636707246304
+Batch: 410 Loss:  0.008599240751937031
+Batch: 411 Loss:  0.008586021233350038
+Batch: 412 Loss:  0.008568629482761025
+Batch: 413 Loss:  0.008548733917996288
+Batch: 414 Loss:  0.00859903944656253
+Batch: 415 Loss:  0.008588832383975387
+Batch: 416 Loss:  0.008551491191610694
+Batch: 417 Loss:  0.00856152749620378
+Batch: 418 Loss:  0.00856568906456232
+Batch: 419 Loss:  0.00857357713393867
+Batch: 420 Loss:  0.008551714848726988
+Batch: 421 Loss:  0.008540487149730325
+Batch: 422 Loss:  0.008540891017764807
+Batch: 423 Loss:  0.00855498998425901
+Batch: 424 Loss:  0.008558664983138443
+Batch: 425 Loss:  0.008537896210327744
+Batch: 426 Loss:  0.008555381279438733
+Batch: 427 Loss:  0.008542446093633771
+Batch: 428 Loss:  0.008534679003059865
+Batch: 429 Loss:  0.008586975932121276
+Batch: 430 Loss:  0.008538094442337751
+Batch: 431 Loss:  0.008542636036872863
+Batch: 432 Loss:  0.008570481929928065
+Batch: 433 Loss:  0.008580515487119555
+Batch: 434 Loss:  0.0085335077252239
+Batch: 435 Loss:  0.008555734483525156
+Batch: 436 Loss:  0.008568749111145735
+Batch: 437 Loss:  0.00854847184382379
+Batch: 438 Loss:  0.00853548482991755
+Batch: 439 Loss:  0.008535807486623526
+Batch: 440 Loss:  0.008556305710226298
+Batch: 441 Loss:  0.008546084584668278
+Batch: 442 Loss:  0.008519063191488385
+Batch: 443 Loss:  0.00856237686239183
+Batch: 444 Loss:  0.008539589261636138
+Batch: 445 Loss:  0.008548468770459294
+Batch: 446 Loss:  0.008552084164693951
+Batch: 447 Loss:  0.008539563231170177
+Batch: 448 Loss:  0.008559826435521245
+Batch: 449 Loss:  0.008565179724246263
+Loss:  0.008569777943193913
+Batch: 450 Loss:  0.008548896526917815
+Batch: 451 Loss:  0.008542729588225485
+Batch: 452 Loss:  0.008555514318868519
+Batch: 453 Loss:  0.008560298057273031
+Batch: 454 Loss:  0.008548516267910599
+Batch: 455 Loss:  0.008552341861650348
+Batch: 456 Loss:  0.008548368234187365
+Batch: 457 Loss:  0.008576136594638229
+Batch: 458 Loss:  0.008547615259885788
+Batch: 459 Loss:  0.00855379132553935
+Batch: 460 Loss:  0.008565721660852432
+Batch: 461 Loss:  0.008526827162131666
+Batch: 462 Loss:  0.008554187184199692
+Batch: 463 Loss:  0.008562745293602347
+Batch: 464 Loss:  0.008546458696946502
+Batch: 465 Loss:  0.008562918985262513
+Batch: 466 Loss:  0.008556704828515648
+Batch: 467 Loss:  0.008538035582751036
+Batch: 468 Loss:  0.008553971908986569
+Batch: 469 Loss:  0.008537848573178053
+Batch: 470 Loss:  0.008555854996666312
+Batch: 471 Loss:  0.008572492562234402
+Batch: 472 Loss:  0.008556108502671123
+Batch: 473 Loss:  0.008541168086230755
+Batch: 474 Loss:  0.008559278259053827
+Batch: 475 Loss:  0.00855825813487172
+Batch: 476 Loss:  0.008543968899175525
+Batch: 477 Loss:  0.008557496685534715
+Batch: 478 Loss:  0.008542481437325477
+Batch: 479 Loss:  0.008537262724712492
+Batch: 480 Loss:  0.008574410481378436
+Batch: 481 Loss:  0.00853747888468206
+Batch: 482 Loss:  0.008552995603531599
+Batch: 483 Loss:  0.008539038430899381
+Batch: 484 Loss:  0.008526249742135405
+Batch: 485 Loss:  0.008522215439006687
+Batch: 486 Loss:  0.008505258103832602
+Batch: 487 Loss:  0.008500068029388786
+Batch: 488 Loss:  0.008513880334794522
+Batch: 489 Loss:  0.00855912403203547
+Batch: 490 Loss:  0.00849114372394979
+Batch: 491 Loss:  0.008461765293031932
+Batch: 492 Loss:  0.008506453782320022
+Batch: 493 Loss:  0.008498266944661737
+Batch: 494 Loss:  0.008464368619024753
+Batch: 495 Loss:  0.008449214370921254
+Batch: 496 Loss:  0.0084784887265414
+Batch: 497 Loss:  0.00845666932873428
+Batch: 498 Loss:  0.008443208504468202
+Batch: 499 Loss:  0.008462647860869765
+Loss:  0.00841665267944336
+Total Average Loss: 0.009904194986540825

@@ -20,14 +20,14 @@ class Primitive:
 
         self.dim = dim
         self.max_timesteps = max_timesteps
-        self.dtype = dtype
+        self.dtype = ti.f64
 
         self.rotation_dim = 4
         self.angular_velocity_dim = 3
 
         self.friction = ti.field(dtype, shape=())
         self.softness = ti.field(dtype, shape=())
-        self.color = ti.Vector.field(3, ti.f32, shape=()) # positon of the primitive
+        self.color = ti.Vector.field(3, ti.f64, shape=()) # positon of the primitive
         self.position = ti.Vector.field(3, dtype, needs_grad=True) # positon of the primitive
         self.rotation = ti.Vector.field(4, dtype, needs_grad=True) # quaternion for storing rotation
 
@@ -191,6 +191,16 @@ class Primitive:
                 for k in ti.static(range(3)):
                     self.w[j][k] = self.action_buffer[s][k+3] * self.action_scale[None][k+3]/n_substeps
 
+    @ti.kernel
+    def read_pos_grad_kernel(self,grad_pos: ti.ext_arr()):
+        for i in ti.static(range(3)):
+            grad_pos[i] = self.position.grad[0][i]
+
+    @ti.kernel
+    def read_rot_grad_kernel(self,grad_rot: ti.ext_arr()):
+        for i in ti.static(range(4)):
+            grad_rot[i] = self.rotation.grad[0][i]
+
     def set_action(self, s, n_substeps, action):
         # set actions for n_substeps ...
         if self.action_dim > 0:
@@ -204,7 +214,16 @@ class Primitive:
             return grad
         else:
             return None
+    
+    def get_pos_grad(self):
+        grad_pos = np.zeros(3,dtype=np.float32)
+        self.read_pos_grad_kernel(grad_pos)
+        return grad_pos
 
+    def get_rot_grad(self):
+        grad_rot = np.zeros(4,dtype = np.float32)
+        self.read_rot_grad_kernel(grad_rot)
+        return grad_rot
 
     @classmethod
     def default_config(cls):

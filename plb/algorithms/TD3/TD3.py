@@ -3,13 +3,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+from ...neurals.autoencoder import PCNEncoder, MLP, PointNetEncoder
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Implementation of Twin Delayed Deep Deterministic Policy Gradients (TD3)
 # Paper: https://arxiv.org/abs/1802.09477
-
 
 class Actor(nn.Module):
 	def __init__(self, state_dim, action_dim, max_action):
@@ -64,6 +63,97 @@ class Critic(nn.Module):
 		q1 = self.l3(q1)
 		return q1
 
+# This Layer will merge the different observations from the env.obs to one latent state
+class SRLLayer(nn.Module):
+	def __init__(self,
+				 n_particles,
+				 n_layers,
+				 feature_dim,
+				 hidden_dim,
+				 latent_dim,
+				 primitive_dim,
+				 ):
+		super(SRLLayer,self).__init__()
+		self.n_particles = n_particles
+		self.latent_dim = latent_dim
+		self.n_layers = n_layers
+		self.feat_dim = feature_dim
+		self.hid_dim = hidden_dim
+		self.primitive_dim = primitive_dim
+		self.encoder = PointNetEncoder(n_particles = self.n_particles,
+									   n_layers = self.n_layers,
+									   in_dim = self.feat_dim,
+									   hidden_dim = self.hid_dim,
+									   out_dim = self.latent_dim)
+		# Freeze the SRL
+		for param in self.encoder.parameters():
+			param.requires_grad = False
+
+		self.primitive_encoder = MLP(num_layers=self.n_layers,
+									 in_dim = self.primitive_dim,
+									 hidden_dim = 256,
+									 out_dim = 10)
+		self.output_dim = self.latent_dim + self.primitive_encoder.out_dim
+	
+	# If the Q function need state representation then this function must handle batched training
+	# Without batch training obs should be a huge flatten variable
+	def forward(self,obs):
+		if obs.ndim == 1:
+			pointcloud_state = torch.from_numpy(obs[:self.feat_dim*self.n_particles].reshape(-1,self.feat_dim)).to(device)
+			primitive_state = torch.from_numpy(obs[self.feat_dim*2*self.n_particles:]).to(device)
+		else:
+			pointcloud_state = torch.from_numpy(obs[:,:self.feat_dim*self.n_particles].reshape(obs.shape[0],-1,self.feat_dim)).to(device)
+			primitive_state = torch.from_numpy(obs[:,self.feat_dim*2*self.n_particles:]).to(device)
+		primitive_hidden = self.primitive_encoder(primitive_state).squeeze()
+		pointcloud_hidden = self.encoder(pointcloud_state).squeeze()
+		if obs.ndim == 1:
+			latent = torch.cat([primitive_hidden,pointcloud_hidden],dim=0)
+		else:
+			latent = torch.cat([primitive_hidden,pointcloud_hidden],dim=1)
+		return latent
+		
+class SRLPCNLayer(nn.Module):
+	def __init__(self,
+				 n_particles,
+				 n_layers,
+				 feature_dim,
+				 hidden_dim,
+				 latent_dim,
+				 primitive_dim):
+		super(SRLPCNLayer,self).__init__()
+		self.n_particles = n_particles
+		self.n_layers = n_layers
+		self.feat_dim = feature_dim
+		self.hidden_dim = hidden_dim
+		self.latent_dim = latent_dim
+		self.primitive_dim = primitive_dim
+		self.pointencoder = PCNEncoder(state_dim=self.feat_dim,latent_dim=self.latent_dim)
+		for p in self.pointencoder.parameters():
+			p.requires_grad = False
+		self.primitiveencoder = MLP(num_layers=self.n_layers,in_dim=self.primitive_dim,hidden_dim=256,out_dim=10)
+		self.output_dim = self.latent_dim*2 + self.primitiveencoder.out_dim
+
+	def forward(self,obs):
+		if obs.ndim == 1:
+			state_current = torch.from_numpy(obs[:self.feat_dim*self.n_particles].reshape(-1,self.feat_dim)).float().to(device)
+			state_prev = torch.from_numpy(obs[self.feat_dim*self.n_particles:self.feat_dim*self.n_particles*2].reshape(-1,self.feat_dim)).float().to(device)
+			primitive_state = torch.from_numpy(obs[self.feat_dim*2*self.n_particles:]).float().to(device)
+		else:
+			state_current = obs[:,:self.feat_dim*self.n_particles].reshape(obs.shape[0],self.feat_dim,-1)
+			state_prev = obs[:,self.feat_dim*self.n_particles:2*self.feat_dim*self.n_particles].reshape(obs.shape[0],self.feat_dim,-1)
+			primitive_state = obs[:,2*self.n_particles*self.feat_dim:]
+		state_current_hidden = self.pointencoder(state_current).squeeze()
+		state_prev_hidden = self.pointencoder(state_prev).squeeze()
+		primitive_hidden = self.primitiveencoder(primitive_state).squeeze()
+		if obs.ndim == 1:
+			latent = torch.cat([primitive_hidden,state_current_hidden,state_prev_hidden],dim=0)
+		else:
+			latent = torch.cat([primitive_hidden,state_current_hidden,state_prev_hidden],dim=1)
+		return latent
+	
+	def load_model(self,path):
+		self.pointencoder.load_state_dict(torch.load(path))
+
 
 class TD3(object):
 	def __init__(
@@ -71,18 +161,38 @@ class TD3(object):
 		state_dim,
 		action_dim,
 		max_action,
+		n_particles,
+		n_layers,
 		discount=0.99,
 		tau=0.005,
 		policy_noise=0.2,
 		noise_clip=0.5,
-		policy_freq=2
+		policy_freq=2,
+		enable_latent = False,
 	):
-
-		self.actor = Actor(state_dim, action_dim, max_action).to(device)
+		print("state_dim:",state_dim,
+			  "action_dim:",action_dim,
+			  "n_particles:",n_particles)
+		self.enable_latent = enable_latent
+		self.state_dim = state_dim
+		self.n_particles = n_particles
+		self.n_layers = n_layers
+		self.primitive_dim = self.state_dim - 6*self.n_particles
+		if self.enable_latent:
+			self.latent_encoder = SRLPCNLayer(n_particles=self.n_particles,
+										      n_layers = self.n_layers,
+										      feature_dim = 3,
+										      hidden_dim = 256,
+										      latent_dim = 1024,
+										      primitive_dim = self.primitive_dim).to(device)
+			self.latent_encoder.load_model('pretrain_model/encoder.pth')
+			print("Enable Latent!!!",self.latent_encoder.output_dim)
+			self.state_dim = self.latent_encoder.output_dim
+		self.actor = Actor(self.state_dim, action_dim, max_action).to(device)
 		self.actor_target = copy.deepcopy(self.actor)
 		self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=3e-4)
 
-		self.critic = Critic(state_dim, action_dim).to(device)
+		self.critic = Critic(self.state_dim, action_dim).to(device)
 		self.critic_target = copy.deepcopy(self.critic)
 		self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=3e-4)
 
@@ -97,15 +207,19 @@ class TD3(object):
 
 
 	def select_action(self, state):
-		state = torch.FloatTensor(state.reshape(1, -1)).to(device)
+		if self.enable_latent:
+			state = self.latent_encoder(state).view(1,-1).detach()
+		else:
+			state = torch.FloatTensor(state.reshape(1,-1)).to(device)
 		return self.actor(state).cpu().data.numpy().flatten()
 
 
-	def train(self, replay_buffer, batch_size=100):
+	def train(self, replay_buffer, batch_size=20):
 		self.total_it += 1
 
 		# Sample replay buffer 
-		state, action, next_state, reward, not_done = replay_buffer.sample(batch_size)
+		latent, action, next_latent, reward, not_done = replay_buffer.sample(batch_size)\
+		# Preserve the state
 
 		with torch.no_grad():
 			# Select action according to policy and add clipped noise
@@ -114,16 +228,16 @@ class TD3(object):
 			).clamp(-self.noise_clip, self.noise_clip)
 			
 			next_action = (
-				self.actor_target(next_state) + noise
+				self.actor_target(next_latent) + noise
 			).clamp(-self.max_action, self.max_action)
 
 			# Compute the target Q value
-			target_Q1, target_Q2 = self.critic_target(next_state, next_action)
+			target_Q1, target_Q2 = self.critic_target(next_latent, next_action)
 			target_Q = torch.min(target_Q1, target_Q2)
 			target_Q = reward + not_done * self.discount * target_Q
 
 		# Get current Q estimates
-		current_Q1, current_Q2 = self.critic(state, action)
+		current_Q1, current_Q2 = self.critic(latent, action)
 
 		# Compute critic loss
 		critic_loss = F.mse_loss(current_Q1, target_Q) + F.mse_loss(current_Q2, target_Q)
@@ -137,7 +251,7 @@ class TD3(object):
 		if self.total_it % self.policy_freq == 0:
 
 			# Compute actor losse
-			actor_loss = -self.critic.Q1(state, self.actor(state)).mean()
+			actor_loss = -self.critic.Q1(latent, self.actor(latent)).mean()
 			
 			# Optimize the actor 
 			self.actor_optimizer.zero_grad()
@@ -157,4 +271,10 @@ class TD3(object):
 
 	def load(self, filename):
 		self.actor_target = copy.deepcopy(self.actor)
+
+	def adapt_state(self,state):
+		if self.enable_latent:
+			return self.latent_encoder(state).detach().cpu().numpy()
+		else:
+			return state
 		

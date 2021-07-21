@@ -5,12 +5,12 @@ SHAPES:
   - shape: box
     width: (0.16, 0.16, 0.16)
     init_pos: (0.6, 0.08, 0.5)
-    n_particles: 6000
+    n_particles: 6144
     color: ((150<<8)+ (150<<16))
   - shape: sphere
     radius: 0.06
     init_pos: (0.3, 0.06, 0.5)
-    n_particles: 4000
+    n_particles: 4096
     color: ((0<<8)+ (150<<16) +150)
 PRIMITIVES:
   - shape: Sphere
