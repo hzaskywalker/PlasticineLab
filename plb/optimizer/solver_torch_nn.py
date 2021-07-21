@@ -17,13 +17,12 @@ OPTIMS = {
 class MLP(nn.Module):
     def __init__(self, input_dim, output_dim):
         super(MLP, self).__init__()
-        self.output_layer = nn.Linear(256, output_dim)
         self.linear_tanh_stack = nn.Sequential(
             nn.Linear(input_dim, 256),
             nn.Tanh(),
             nn.Linear(256, 256),
             nn.Tanh(),
-            self.output_layer
+            nn.Linear(256, output_dim)
         )
         self.learning_rate = 1e-3
         self.batch_size = 64
@@ -43,17 +42,12 @@ class SolverTorchNN:
         self.env = env
         self.logger = logger
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.nn = MLP(4 + env.n_primitive,
-                      env.primitives.action_dim).to(self.device)
+        self.nn = MLP(env.simulator.state_size,
+                      env.primitives.action_dim).double().to(self.device)
 
     def solve(self, init_actions=None, callbacks=()):
         env = self.env
-        # if init_actions is None:
-        #     init_actions = self.init_actions(env, self.cfg)
-        # initialize ...
-        # optim = OPTIMS[self.optim_cfg.type](init_actions, self.optim_cfg)
-        # set softness ..
-        env_state = env.get_state()
+        initial_env_state = env.get_state()
         self.total_steps = 0
 
         def forward_ng(sim_state):
@@ -65,19 +59,23 @@ class SolverTorchNN:
 
             actions = []
             with ti.Tape(loss=env.loss.loss):
-                for i in range(self.cfg.horizen):
-                    action_tensor = self.nn(env.get_state())
-                    actions.append(action_tensor)
-                    action_np = action_tensor.numpy()
+                for i in range(self.cfg.horizon):
+                    states = env.get_state()['state']
+                    state_1d = np.concatenate([np.ravel(state)
+                                               for state in states])
+                    state_tensor = torch.as_tensor(state_1d).to(self.device)
+                    action_var = self.nn(state_tensor)
+                    actions.append(action_var)
+                    action_np = action_var.data.cpu().numpy()
                     env.step(action_np)
                     self.total_steps += 1
                     loss_info = env.compute_loss()
                     if self.logger is not None:
                         self.logger.step(
-                            None, None, loss_info['reward'], None, i == self.cfg.horizen-1, loss_info)
+                            None, None, loss_info['reward'], None, i == self.cfg.horizon-1, loss_info)
             loss = env.loss.loss[None]
 
-            grads = env.primitives.get_grad(self.cfg.horizen)
+            grads = env.primitives.get_grad(self.cfg.horizon)
             for action, grad in zip(actions, grads):
                 grad_tensor = torch.FloatTensor(grad)
                 action.backward(grad_tensor, retain_graph=True)
@@ -86,36 +84,15 @@ class SolverTorchNN:
             actions_np = np.concatenate([t.numpy() for t in actions], axis=0)
             return loss, actions_np
 
-        def forward(sim_state, actions):
-            if self.logger is not None:
-                self.logger.reset()
-
-            env.set_state(sim_state, self.cfg.softness, False)
-            with ti.Tape(loss=env.loss.loss):
-                for i in range(len(actions)):
-                    env.step(actions[i])
-                    self.total_steps += 1
-                    loss_info = env.compute_loss()
-                    if self.logger is not None:
-                        self.logger.step(
-                            None, None, loss_info['reward'], None, i == len(actions)-1, loss_info)
-            loss = env.loss.loss[None]
-            return loss, env.primitives.get_grad(len(actions))
-        # put taichi grad into pytorch tensor
-        # actions now randomly generated, later we need to generate actions from nn(states)
-        # use the new pytorch tensor grad to optimize the torch nn
-
         best_actions = None
         best_loss = 1e10
         # actions = init_actions
         for iter in range(self.cfg.n_iters):
             # self.params = actions.copy()  # not used?
-            # loss, grad = forward(env_state['state'], actions)
+            # loss, grad = forward(initial_env_state['state'], actions)
 
-            # edit here
             self.nn.optimizer.zero_grad()
-            loss, actions = forward_ng(env_state['state'])
-            ###
+            loss, actions = forward_ng(initial_env_state['state'])
 
             if loss < best_loss:
                 best_loss = loss
@@ -124,7 +101,7 @@ class SolverTorchNN:
             # for callback in callbacks:
             #     callback(self, optim, loss, grad)
 
-        env.set_state(**env_state)
+        env.set_state(**initial_env_state)
         return best_actions
 
     @staticmethod
