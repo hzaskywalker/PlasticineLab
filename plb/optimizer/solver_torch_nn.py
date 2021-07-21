@@ -149,7 +149,7 @@ class SolverTorchNN:
         return cfg
 
 
-def solve_action(env, path, logger, args):
+def solve_torch_nn(env, path, logger, args):
     import os
     import cv2
     os.makedirs(path, exist_ok=True)
