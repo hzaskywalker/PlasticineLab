@@ -11,6 +11,7 @@ OPTIMS = {
     'Momentum': Momentum
 }
 
+
 class Solver:
     def __init__(self, env: TaichiEnv, logger=None, cfg=None, **kwargs):
         self.cfg = make_cls_config(self, cfg, **kwargs)
@@ -28,20 +29,21 @@ class Solver:
         env_state = env.get_state()
         self.total_steps = 0
 
-        def forward(sim_state, action):
+        def forward(sim_state, actions):
             if self.logger is not None:
                 self.logger.reset()
 
             env.set_state(sim_state, self.cfg.softness, False)
             with ti.Tape(loss=env.loss.loss):
-                for i in range(len(action)):
-                    env.step(action[i])
+                for i in range(len(actions)):
+                    env.step(actions[i])
                     self.total_steps += 1
                     loss_info = env.compute_loss()
                     if self.logger is not None:
-                        self.logger.step(None, None, loss_info['reward'], None, i==len(action)-1, loss_info)
+                        self.logger.step(
+                            None, None, loss_info['reward'], None, i == len(actions)-1, loss_info)
             loss = env.loss.loss[None]
-            return loss, env.primitives.get_grad(len(action))
+            return loss, env.primitives.get_grad(len(actions))
 
         best_action = None
         best_loss = 1e10
@@ -49,17 +51,16 @@ class Solver:
         actions = init_actions
         for iter in range(self.cfg.n_iters):
             self.params = actions.copy()
-            loss, grad = forward(env_state['state'], actions)
+            loss, grads = forward(env_state['state'], actions)
             if loss < best_loss:
                 best_loss = loss
                 best_action = actions.copy()
-            actions = optim.step(grad)
+            actions = optim.step(grads)
             for callback in callbacks:
-                callback(self, optim, loss, grad)
+                callback(self, optim, loss, grads)
 
         env.set_state(**env_state)
         return best_action
-
 
     @staticmethod
     def init_actions(env, cfg):
@@ -84,7 +85,8 @@ class Solver:
 
 
 def solve_action(env, path, logger, args):
-    import os, cv2
+    import os
+    import cv2
     os.makedirs(path, exist_ok=True)
     env.reset()
     taichi_env: TaichiEnv = env.unwrapped.taichi_env
