@@ -36,48 +36,41 @@ class MLP(nn.Module):
 
 
 class SolverTorchNN:
-    def __init__(self, env: TaichiEnv, logger=None, cfg=None, **kwargs):
+    def __init__(self, env, logger=None, cfg=None, **kwargs):
         self.cfg = make_cls_config(self, cfg, **kwargs)
         self.optim_cfg = self.cfg.optim
         self.env = env
         self.logger = logger
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.nn = MLP(env.simulator.state_size,
-                      env.primitives.action_dim).double().to(self.device)
+        self.nn = MLP(env.observation_space.shape[0], env.action_space.shape[0]).double(
+        ).to(self.device)
 
     def solve(self, init_actions=None, callbacks=()):
-        env = self.env
-        initial_env_state = env.get_state()
         self.total_steps = 0
 
-        def forward_ng(sim_state):
+        def train():
             if self.logger is not None:
                 self.logger.reset()
 
-            env.set_state(sim_state, self.cfg.softness, False)
-            # TODO: tensor actions for backward, and np actions for taichi env step
-
+            taichi_env = self.env.unwrapped.taichi_env
             actions = []
-            with ti.Tape(loss=env.loss.loss):
+            obs = self.env.reset()
+            with ti.Tape(loss=taichi_env.loss.loss):
                 for i in range(self.cfg.horizon):
-                    states = env.get_state()['state']
-                    state_1d = np.concatenate([np.ravel(state)
-                                               for state in states])
-                    state_tensor = torch.as_tensor(state_1d).to(self.device)
+                    state_tensor = torch.as_tensor(obs).to(self.device)
                     action_var = self.nn(state_tensor)
                     actions.append(action_var)
                     action_np = action_var.data.cpu().numpy()
-                    env.step(action_np)
+                    obs, reward, done, loss_info = self.env.step(action_np)
                     self.total_steps += 1
-                    loss_info = env.compute_loss()
                     if self.logger is not None:
                         self.logger.step(
-                            None, None, loss_info['reward'], None, i == self.cfg.horizon-1, loss_info)
-            loss = env.loss.loss[None]
+                            None, None, reward, None, i == self.cfg.horizon-1, loss_info)
+            loss = taichi_env.loss.loss[None]
 
-            grads = env.primitives.get_grad(self.cfg.horizon)
+            grads = taichi_env.primitives.get_grad(self.cfg.horizon)
             for action, grad in zip(actions, grads):
-                grad_tensor = torch.FloatTensor(grad)
+                grad_tensor = torch.as_tensor(grad)
                 action.backward(grad_tensor, retain_graph=True)
 
             self.nn.optimizer.step()
@@ -86,22 +79,17 @@ class SolverTorchNN:
 
         best_actions = None
         best_loss = 1e10
-        # actions = init_actions
         for iter in range(self.cfg.n_iters):
-            # self.params = actions.copy()  # not used?
-            # loss, grad = forward(initial_env_state['state'], actions)
-
             self.nn.optimizer.zero_grad()
-            loss, actions = forward_ng(initial_env_state['state'])
+            loss, actions = train()
 
             if loss < best_loss:
                 best_loss = loss
                 best_actions = actions.copy()
-            # actions = optim.step(grad)
             # for callback in callbacks:
             #     callback(self, optim, loss, grad)
 
-        env.set_state(**initial_env_state)
+        self.env.reset()
         return best_actions
 
     @staticmethod
@@ -131,9 +119,9 @@ def solve_torch_nn(env, path, logger, args):
     import cv2
     os.makedirs(path, exist_ok=True)
     env.reset()
-    taichi_env: TaichiEnv = env.unwrapped.taichi_env
+
     T = env._max_episode_steps
-    solver = SolverTorchNN(taichi_env, logger, None,
+    solver = SolverTorchNN(env, logger, None,
                            n_iters=(args.num_steps + T-1)//T, softness=args.softness, horizon=T,
                            **{"optim.lr": args.lr, "optim.type": args.optim, "init_range": 0.0001})
 
