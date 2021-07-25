@@ -55,6 +55,7 @@ class SolverTorchNN:
             taichi_env = self.env.unwrapped.taichi_env
             actions = []
             obs = self.env.reset()
+            taichi_env.set_copy(False)
             with ti.Tape(loss=taichi_env.loss.loss):
                 for i in range(self.cfg.horizon):
                     state_tensor = torch.as_tensor(obs).to(self.device)
