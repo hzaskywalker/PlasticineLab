@@ -24,7 +24,7 @@ class MLP(nn.Module):
             nn.Tanh(),
             nn.Linear(256, output_dim)
         )
-        self.learning_rate = 1e-3
+        self.learning_rate = 1e-4
         self.batch_size = 64
         self.epochs = 5
         self.optimizer = torch.optim.Adam(
@@ -45,44 +45,43 @@ class SolverTorchNN:
         self.nn = MLP(env.observation_space.shape[0], env.action_space.shape[0]).double(
         ).to(self.device)
 
+    def train(self):
+        if self.logger is not None:
+            self.logger.reset()
+        taichi_env = self.env.unwrapped.taichi_env
+        actions = []
+        obs = self.env.reset()
+        taichi_env.set_copy(False)
+        print("=======================")
+        with ti.Tape(loss=taichi_env.loss.loss):
+            for i in range(self.cfg.horizon):
+                state_tensor = torch.as_tensor(obs).to(self.device)
+                action_var = self.nn(state_tensor)
+                actions.append(action_var)
+                action_np = action_var.data.cpu().clone().numpy()
+                obs, reward, done, loss_info = self.env.step(action_np)
+
+                if self.logger is not None:
+                    self.logger.step(
+                        None, None, reward, None, i == self.cfg.horizon-1, loss_info)
+        loss = taichi_env.loss.loss[None]
+        print('loss: ', loss)
+
+        grads = taichi_env.primitives.get_grad(self.cfg.horizon)
+        for action, grad in zip(actions, grads):
+            grad_tensor = torch.as_tensor(grad).to('cuda')
+            action.backward(grad_tensor, retain_graph=True)
+
+        self.nn.optimizer.step()
+        actions_np = [t.data.cpu().numpy() for t in actions]
+        return loss, actions_np
+
     def solve(self, init_actions=None, callbacks=()):
-        self.total_steps = 0
-
-        def train():
-            if self.logger is not None:
-                self.logger.reset()
-
-            taichi_env = self.env.unwrapped.taichi_env
-            actions = []
-            obs = self.env.reset()
-            taichi_env.set_copy(False)
-            with ti.Tape(loss=taichi_env.loss.loss):
-                for i in range(self.cfg.horizon):
-                    state_tensor = torch.as_tensor(obs).to(self.device)
-                    action_var = self.nn(state_tensor)
-                    actions.append(action_var)
-                    action_np = action_var.data.cpu().numpy()
-                    obs, reward, done, loss_info = self.env.step(action_np)
-                    self.total_steps += 1
-                    if self.logger is not None:
-                        self.logger.step(
-                            None, None, reward, None, i == self.cfg.horizon-1, loss_info)
-            loss = taichi_env.loss.loss[None]
-
-            grads = taichi_env.primitives.get_grad(self.cfg.horizon)
-            for action, grad in zip(actions, grads):
-                grad_tensor = torch.as_tensor(grad)
-                action.backward(grad_tensor, retain_graph=True)
-
-            self.nn.optimizer.step()
-            actions_np = np.concatenate([t.numpy() for t in actions], axis=0)
-            return loss, actions_np
-
         best_actions = None
         best_loss = 1e10
         for iter in range(self.cfg.n_iters):
             self.nn.optimizer.zero_grad()
-            loss, actions = train()
+            loss, actions = self.train()
 
             if loss < best_loss:
                 best_loss = loss
@@ -91,6 +90,7 @@ class SolverTorchNN:
             #     callback(self, optim, loss, grad)
 
         self.env.reset()
+        print("actions: ", best_actions)
         return best_actions
 
     @staticmethod
