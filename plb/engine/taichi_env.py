@@ -5,6 +5,7 @@ import taichi as ti
 # TODO: run on GPU, fast_math will cause error on float64's sqrt; removing it cuases compile error..
 ti.init(arch=ti.gpu, debug=False, fast_math=True)
 
+
 @ti.data_oriented
 class TaichiEnv:
     def __init__(self, cfg, nn=False, loss=True):
@@ -41,7 +42,7 @@ class TaichiEnv:
         self._is_copy = True
 
     def set_copy(self, is_copy: bool):
-        self._is_copy= is_copy
+        self._is_copy = is_copy
 
     def initialize(self):
         # initialize all taichi variable according to configurations..
@@ -50,7 +51,8 @@ class TaichiEnv:
         self.renderer.initialize()
         if self.loss:
             self.loss.initialize()
-            self.renderer.set_target_density(self.loss.target_density.to_numpy()/self.simulator.p_mass)
+            self.renderer.set_target_density(
+                self.loss.target_density.to_numpy()/self.simulator.p_mass)
 
         # call set_state instead of reset..
         self.simulator.reset(self.init_particles)
@@ -74,6 +76,21 @@ class TaichiEnv:
             plt.show()
         else:
             return img
+
+    def get_obs(self, n_observed_particles):
+        if self._is_copy:
+            t = 0
+        else:
+            t = self.simulator.cur
+
+        x = self.simulator.get_x(t, needs_grad=False)
+        v = self.simulator.get_v(t, needs_grad=False)
+        outs = []
+        for i in self.primitives:
+            outs.append(i.get_state(t, needs_grad=False))
+        s = np.concatenate(outs)
+        step_size = len(x) // n_observed_particles
+        return np.concatenate((np.concatenate((x[::step_size], v[::step_size]), axis=-1).reshape(-1), s.reshape(-1)))
 
     def step(self, action=None):
         if action is not None:

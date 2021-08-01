@@ -32,15 +32,11 @@ class PlasticineEnv(gym.Env):
         self._recorded_actions = []
         return self._get_obs()
 
-    def _get_obs(self, t=0):
-        x = self.taichi_env.simulator.get_x(t, needs_grad=False)
-        v = self.taichi_env.simulator.get_v(t, needs_grad=False)
-        outs = []
-        for i in self.taichi_env.primitives:
-            outs.append(i.get_state(t, needs_grad=False))
-        s = np.concatenate(outs)
-        step_size = len(x) // self._n_observed_particles
-        return np.concatenate((np.concatenate((x[::step_size], v[::step_size]), axis=-1).reshape(-1), s.reshape(-1)))
+    def _get_obs(self):
+        # TODO: check if _n_observed_particles should be passed as argument
+        # step_size = self.simulator.n_particles // self._n_observed_particles
+        obs = self.taichi_env.get_obs(self._n_observed_particles)
+        return obs
 
     def step(self, action):
         self.taichi_env.step(action)
