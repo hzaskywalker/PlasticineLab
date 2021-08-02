@@ -43,7 +43,7 @@ def get_args():
     parser.add_argument("--softness", type=float, default=666.)
     parser.add_argument("--optim", type=str, default='Adam', choices=['Adam', 'Momentum'])
     parser.add_argument("--srl", action='store_true', default=False)
-    parser.add_argument("--loss",type=str,default='voxel_mae')
+    parser.add_argument("--loss",type=str,default='chamfer')
     parser.add_argument("--batch_size",type=int,default=5)
 
     args=parser.parse_args()

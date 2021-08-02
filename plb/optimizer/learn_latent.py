@@ -116,7 +116,7 @@ def update_network(optimizer,state_buffer,grad_buffer,loss_buffer,use_loss=True)
         for loss in loss_buffer:
             loss.backward()
     loss_buffer[:] = []
-    optimizer.step()
+    #optimizer.step()
     state_buffer[:] = []
     grad_buffer[:] = []
 
@@ -141,7 +141,7 @@ def learn_latent(env, path, args):
                     **{"optim.lr": args.lr, "optim.type":args.optim, "init_range":0.0001})
     dataset = ChopSticksDataset()
     dataloader = DataLoader(dataset,batch_size=1)
-    epochs = 2
+    epochs = 5
     batch_loss = 0
     batch_cnt = 0
     batch_size = args.batch_size
@@ -150,6 +150,7 @@ def learn_latent(env, path, args):
     loss_buffer = []
     for i in range(epochs):
         total_loss = 0
+        batch_cnt = 0
         for state,target,action in dataloader:
             state = [state[0].squeeze().numpy(),state[1].squeeze().numpy(),
                      state[2].squeeze().numpy(),state[3].squeeze().numpy()]

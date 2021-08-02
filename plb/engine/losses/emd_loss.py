@@ -28,14 +28,14 @@ class EMDLoss(nn.Module):
         pass
 
     def compute_loss(self,cur,copy_grad,decay):
-        output = torch.from_numpy(self.sim.get_x_nokernel()).float().cuda()
+        output = torch.from_numpy(self.sim.get_x(self.sim.cur)).float().cuda()
         output.requires_grad_()
         loss,_ = compute_emd(self.target,output,self.iters)
         loss = loss*decay**(cur//self.sim.substeps)
         self.loss[None] = float(loss)
         loss.backward()
         if copy_grad:
-            self.sim.set_x_grad(output.grad.double().cpu(),cur)
+            self.sim.set_x_grad(cur,output.grad.double().cpu())
         else:
             self.grad_buffer.append(output.grad.double().cpu())
             self.cur_buffer.append(cur)
@@ -43,7 +43,7 @@ class EMDLoss(nn.Module):
 
     def set_grad(self):
         for cur,grad in zip(self.cur_buffer,self.grad_buffer):
-            self.sim.set_x_grad(grad,cur)
+            self.sim.set_x_grad(cur,grad)
         self.loss[None] = sum(self.cum_loss)/len(self.grad_buffer)
         self.grad_buffer = []
         self.cur_buffer = []
