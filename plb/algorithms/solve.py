@@ -75,7 +75,7 @@ def main():
     elif args.algo == 'nn':
         solve_nn(env, args.path, logger, args)
     elif args.algo == 'torch_nn':
-        solve_torch_nn(env, args.path, logger, args)
+        solve_torch_nn(env, args)
     else:
         raise NotImplementedError
 

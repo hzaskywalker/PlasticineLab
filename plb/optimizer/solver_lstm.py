@@ -14,43 +14,43 @@ from .optim import Optimizer
 from ..engine.taichi_env import TaichiEnv
 from ..config.utils import make_cls_config
 
-AF = {
-    "Tanh": F.tanh,
-    "ReLU": F.relu
-}
+# AF = {
+#     "Tanh": F.tanh,
+#     "ReLU": F.relu
+# }
 
 
-class MLP(nn.Module):
-    def __init__(self, input_dim, output_dim, hidden=(256, 256), activation="Tanh"):
-        super(MLP, self).__init__()
-        self.af = AF[activation]
-        dims = (input_dim,) + hidden + (output_dim,)
-        self.linears = nn.ModuleList(
-            [nn.Linear(dim, dims[i+1]) for i, dim in enumerate(dims[:-1])])
+# class MLP(nn.Module):
+#     def __init__(self, input_dim, output_dim, hidden=(256, 256), activation="Tanh"):
+#         super(MLP, self).__init__()
+#         self.af = AF[activation]
+#         dims = (input_dim,) + hidden + (output_dim,)
+#         self.linears = nn.ModuleList(
+#             [nn.Linear(dim, dims[i+1]) for i, dim in enumerate(dims[:-1])])
 
-    def forward(self, x):
-        for l in self.linears[:-1]:
-            x = self.af(l(x))
-        logits = self.linears[-1](x)
-        return logits
+#     def forward(self, x):
+#         for l in self.linears[:-1]:
+#             x = self.af(l(x))
+#         logits = self.linears[-1](x)
+#         return logits
 
-    @ classmethod
-    def default_config(cls):
-        cfg = CN()
-        cfg.hidden = (256, 256)
-        cfg.af = "Tanh"
-        return cfg
+#     @ classmethod
+#     def default_config(cls):
+#         cfg = CN()
+#         cfg.hidden = (256, 256)
+#         cfg.af = "Tanh"
+#         return cfg
 
 
-class SolverTorchNN:
+class SolverLSTM:
     def __init__(self, env, logger=None, data_dir='', **kwargs):
         self.cfg = make_cls_config(self, None, **kwargs)
         self.env = env
         self.logger = logger
         self.data_dir = data_dir
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.nn = MLP(env.observation_space.shape[0], env.action_space.shape[0],
-                      hidden=self.cfg.nn.hidden, activation=self.cfg.nn.af).double().to(self.device)
+        self.nn = nn.LSTM(
+            env.observation_space.shape[0], env.action_space.shape[0]).double().to(self.device)
         self.learning_rate = self.cfg.optim.lr
         self.optimizer = torch.optim.Adam(
             self.nn.parameters(), lr=self.learning_rate)
@@ -64,10 +64,11 @@ class SolverTorchNN:
         taichi_env.set_copy(False)
         with ti.Tape(loss=taichi_env.loss.loss):
             for i in range(self.cfg.horizon):
-                state_tensor = torch.as_tensor(obs).to(self.device)
-                action_var = self.nn(state_tensor)
+                state_tensor = torch.as_tensor(
+                    obs.reshape(1, 1, -1)).to(self.device)
+                action_var, _ = self.nn(state_tensor)
                 actions.append(action_var)
-                action_np = action_var.data.cpu().numpy()
+                action_np = action_var.data.cpu().clone().numpy()
                 obs, reward, done, loss_info = self.env.step(action_np)
 
                 if self.logger is not None:
@@ -77,7 +78,7 @@ class SolverTorchNN:
 
         grads = taichi_env.primitives.get_grad(self.cfg.horizon)
         for action, grad in zip(actions, grads):
-            grad_tensor = torch.as_tensor(grad).to('cuda')
+            grad_tensor = torch.as_tensor(grad.reshape(1, 1, -1)).to('cuda')
             action.backward(grad_tensor, retain_graph=True)
 
         self.optimizer.step()
@@ -88,6 +89,7 @@ class SolverTorchNN:
         best_actions = None
         best_model = None
         best_loss = 1e10
+        self.cfg.n_iters = 1000
         for iter in range(self.cfg.n_iters):
             self.optimizer.zero_grad()
             loss, actions = self.train()
@@ -125,7 +127,6 @@ class SolverTorchNN:
     def default_config(cls):
         cfg = CN()
         cfg.optim = Optimizer.default_config()
-        cfg.nn = MLP.default_config()
         cfg.n_iters = 100
         cfg.softness = 666.
         cfg.horizon = 50
@@ -133,20 +134,20 @@ class SolverTorchNN:
         return cfg
 
 
-def solve_torch_nn(env, args):
+def solve_lstm(env, args):
     import os
     import cv2
 
-    exp_name = f"mlp_{args.env_name}_hidden-{args.hidden}_lr-{args.lr}_af-{args.af}"
+    exp_name = f"lstm_{args.env_name}_lr-{args.lr}"
     path = f"data/{exp_name}/{exp_name}_s{args.seed}"
     os.makedirs(path, exist_ok=True)
     logger = Logger(path, exp_name)
     env.reset()
 
     T = env._max_episode_steps
-    solver = SolverTorchNN(env, logger, data_dir=path,
-                           n_iters=(args.num_steps + T-1)//T, softness=args.softness, horizon=T,
-                           **{"optim.lr": args.lr, "nn.hidden": args.hidden, "nn.af": args.af})
+    solver = SolverLSTM(env, logger, data_dir=path,
+                        n_iters=(args.num_steps + T-1)//T, softness=args.softness, horizon=T,
+                        **{"optim.lr": args.lr})
 
     actions = solver.solve()
     # actions = solver.inference()
