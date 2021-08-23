@@ -1,13 +1,12 @@
 import logging
 import os
-
+import json
 import time
-import os
 from torch.utils.tensorboard import SummaryWriter as TorchWriter
 
 
 class SummaryWriter:
-    def __init__(self, path:str):
+    def __init__(self, path: str):
         if not path.endswith("log"):
             path = os.path.join(path, 'log')
         self.path = path
@@ -16,17 +15,25 @@ class SummaryWriter:
     def write(self, values):
         step = values['log/step']
         for key, val in values.items():
-            if key!='log/step':
+            if key != 'log/step':
                 self.writer.add_scalar(key, val, step)
 
 
 class Logger:
-    def __init__(self, path):
+    def __init__(self, path, exp_name=None):
         self.path = path
         self.summary_writer = SummaryWriter(path)
-        self.prefix = 'train'
-        self.keys = ['step', 'reward', 'loss', 'sdf', 'density', 'contact', 'total_iou', 'last_iou']
-
+        self.prefix = 'progress.txt'
+        self.keys = ['step', 'reward', 'loss', 'sdf',
+                     'density', 'contact', 'total_iou', 'last_iou']
+        if exp_name:
+            config_json = {'exp_name': exp_name}
+            output = json.dumps(config_json, separators=(
+                ',', ':\t'), indent=4, sort_keys=True)
+            print('Saving config:\n')
+            print(output)
+            with open(os.path.join(self.path, "config.json"), 'w') as out:
+                out.write(output)
         with open(self.filepath(), 'w') as f:
             f.write(','.join(self.keys) + '\n')
         self.steps = 0
@@ -40,7 +47,7 @@ class Logger:
     def reset(self):
         self.episode += 1
         self.values = {
-            i:0 for i in self.keys
+            i: 0 for i in self.keys
         }
         self.values['step'] = self.steps
         self.not_done = True
@@ -67,7 +74,9 @@ class Logger:
         if done:
             fps = self.steps / (time.time() - self.start)
 
-            print(f"STEP: {self.steps}, reward {self.values['reward']} last_iou {self.values['last_iou']}   fps: {fps}")
+            print(
+                f"STEP: {self.steps}, reward {self.values['reward']} last_iou {self.values['last_iou']}   fps: {fps}")
             self.write(values=self.values)
-            self.summary_writer.write({'log/'+i: k for i, k in self.values.items()})
+            self.summary_writer.write(
+                {'log/'+i: k for i, k in self.values.items()})
             self.not_done = False
