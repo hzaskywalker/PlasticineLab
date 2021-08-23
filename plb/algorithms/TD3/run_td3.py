@@ -109,6 +109,7 @@ def train_td3(env, path, logger, old_args):
 
     state, done = env.reset(), False
     episode_reward = 0
+    episode_iou = 0
     episode_timesteps = 0
     episode_num = 0
 
@@ -120,6 +121,7 @@ def train_td3(env, path, logger, old_args):
     logger.reset()
     print("Number of steps:",args.max_timesteps)
     reward_buffer = np.zeros((5,1010))
+    iou_buffer = np.zeros((5,1010))
     for iter in range(5):
         # Use Copied Policy for parameter reset
         policy = copy.deepcopy(copied_policy)
@@ -150,6 +152,8 @@ def train_td3(env, path, logger, old_args):
             logger.step(state, action, reward, next_state, done, info)
             state = next_state
             episode_reward += reward
+            if info['iou'] > episode_iou:
+                episode_iou += info['iou']
 
             # Train agent after collecting sufficient data
             if t >= args.start_timesteps:
@@ -164,7 +168,9 @@ def train_td3(env, path, logger, old_args):
                 # Reset environment
                 state, done = env.reset(), False
                 reward_buffer[iter,episode_num] = episode_reward
+                iou_buffer[iter,episode_num] = episode_iou
                 episode_reward = 0
+                episode_iou = 0
                 episode_timesteps = 0
                 episode_num += 1
 
@@ -178,4 +184,7 @@ def train_td3(env, path, logger, old_args):
                     policy.save(log_path)
     if not os.path.exists('rewards'):
         os.mkdir('rewards')
+    if not os.path.exists('ious'):
+        os.mkdir('ious')
     np.save('rewards/rewards_{}'.format(old_args.result_name),reward_buffer)
+    np.save('ious/ious_{}'.format(old_args.result_name),iou_buffer)
