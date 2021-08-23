@@ -7,6 +7,8 @@
 
 ## Tune Hyper Parameters
 `python3 -m plb.algorithms.tune`
+For now, it would be recommended to run `tune.py` for torch_nn and lstm.
+
 
 ## Visualize
  - `convert -delay 20 -loop 0 output/*.png output/output.gif`
