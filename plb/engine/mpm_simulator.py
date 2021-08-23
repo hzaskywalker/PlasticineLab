@@ -404,9 +404,17 @@ class MPMSimulator:
             for j in ti.static(range(self.dim)):
                 v[i, j] = self.v[f, i][j]
 
+    @ti.complex_kernel
+    def get_v_tape(self,f:ti.i32,v:ti.ext_arr()):
+        self.get_v_kernel(f,v)
+
+    @ti.complex_kernel_grad(get_v_tape)
+    def get_v_tape_grad(self,f:ti.i32,v:ti.ext_arr()):
+        return
+
     def get_v(self, f):
         v = np.zeros((self.n_particles, self.dim), dtype=np.float64)
-        self.get_v_kernel(f, v)
+        self.get_v_tape(f, v)
         return v
 
     @ti.kernel

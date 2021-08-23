@@ -48,7 +48,7 @@ class Solver:
                     break
                 env.step(action)
                 action_buffer.append(action)
-                #env.render()
+                env.render()
                 self.total_steps += 1
                 self.pc_cnt += 1
                 print("Step",self.total_steps)

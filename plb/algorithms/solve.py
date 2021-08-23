@@ -45,6 +45,8 @@ def get_args():
     parser.add_argument("--srl", action='store_true', default=False)
     parser.add_argument("--loss",type=str,default='chamfer')
     parser.add_argument("--batch_size",type=int,default=5)
+    parser.add_argument('--result_name',type=str,default=None,required=True)
+    parser.add_argument("--pretrained_model", default="")
 
     args=parser.parse_args()
 

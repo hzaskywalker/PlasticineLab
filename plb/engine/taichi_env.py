@@ -2,7 +2,7 @@ from token import ENDMARKER
 import numpy as np
 import cv2
 import taichi as ti
-from .losses import Loss, StateLoss, ChamferLoss, EMDLoss
+from .losses import Loss ,StateLoss, ChamferLoss, EMDLoss
 
 # TODO: run on GPU, fast_math will cause error on float64's sqrt; removing it cuases compile error..
 ti.init(arch=ti.gpu, debug=False, fast_math=True)
@@ -135,10 +135,10 @@ class TaichiEnv:
         return x_grad, v_grad
 
     def get_x(self):
-        return self.simulator.get_x_nokernel()
+        return self.simulator.get_x(self.simulator.cur)
 
     def get_v(self):
-        return self.simulator.get_v_nokernel()
+        return self.simulator.get_v(self.simulator.cur)
 
     def set_grad(self):
         assert(isinstance(self.loss,ChamferLoss) or isinstance(self.loss,EMDLoss))

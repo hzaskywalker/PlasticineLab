@@ -63,12 +63,13 @@ def train_td3(env, path, logger, old_args):
     parser.add_argument("--policy_freq", default=2, type=int)       # Frequency of delayed policy updates
     parser.add_argument("--save_model", action="store_true")        # Save model and optimizer parameters
     parser.add_argument("--load_model", default="")                 # Model load file name, "" doesn't load, "default" uses file_name
-
-    max_timesteps = old_args.num_steps
+    parser.add_argument("--pretrained_model", default="")
 
     args, _ = parser.parse_known_args()
-    args.max_timesteps = max_timesteps
+    args.max_timesteps = old_args.num_steps
 
+    if len(args.pretrained_model) == 0:
+        args.pretrained_model = old_args.pretrained_model
     args.discount = float(args.gamma)
 
     log_path = path
@@ -96,6 +97,8 @@ def train_td3(env, path, logger, old_args):
         kwargs["policy_noise"] = args.policy_noise * max_action
         kwargs["noise_clip"] = args.noise_clip * max_action
         kwargs["policy_freq"] = args.policy_freq
+        if len(args.pretrained_model) != 0:
+            kwargs["encoder_path"] = args.pretrained_model
         policy = TD3.TD3(**kwargs)
         copied_policy = copy.deepcopy(policy)
     else:
@@ -173,4 +176,6 @@ def train_td3(env, path, logger, old_args):
                     print(output)
                     #np.save(f"./results/{file_name}", evaluations)
                     policy.save(log_path)
-    np.save('rewards.npz',reward_buffer)
+    if not os.path.exists('rewards'):
+        os.mkdir('rewards')
+    np.save('rewards/rewards_{}'.format(old_args.result_name),reward_buffer)
