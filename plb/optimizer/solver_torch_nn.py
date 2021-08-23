@@ -32,6 +32,7 @@ class MLP(nn.Module):
         for l in self.linears[:-1]:
             x = self.af(l(x))
         logits = self.linears[-1](x)
+        logits = F.hardtanh(logits, -1., 1.)
         return logits
 
     @ classmethod
@@ -55,7 +56,7 @@ class SolverTorchNN:
         self.optimizer = torch.optim.Adam(
             self.nn.parameters(), lr=self.learning_rate)
 
-    def train(self):
+    def train(self, epoch):
         if self.logger is not None:
             self.logger.reset()
         taichi_env = self.env.unwrapped.taichi_env
@@ -76,6 +77,9 @@ class SolverTorchNN:
         loss = taichi_env.loss.loss[None]
 
         grads = taichi_env.primitives.get_grad(self.cfg.horizon)
+        self.logger.summary_writer.writer.add_histogram(
+            'primitives grad', grads, epoch)
+
         for action, grad in zip(actions, grads):
             grad_tensor = torch.as_tensor(grad).to('cuda')
             action.backward(grad_tensor, retain_graph=True)
@@ -90,7 +94,7 @@ class SolverTorchNN:
         best_loss = 1e10
         for iter in range(self.cfg.n_iters):
             self.optimizer.zero_grad()
-            loss, actions = self.train()
+            loss, actions = self.train(iter)
 
             if loss < best_loss:
                 best_loss = loss
@@ -104,6 +108,8 @@ class SolverTorchNN:
             self.data_dir, 'model_weights.pth'))
 
         self.env.reset()
+        # self.logger.summary_writer.writer.add_graph(self.nn)
+        self.logger.summary_writer.writer.close()
         return best_actions
 
     def inference(self):
