@@ -300,6 +300,14 @@ class Primitives:
                 grads.append(grad)
         return np.concatenate(grads, axis=1)
 
+    def get_step_grad(self,n):
+        grads = []
+        for i in range(self.n):
+            grad = self.primitives[i].get_step_action_grad(n)
+            if grad is not None:
+                grads.append(grad)
+        return np.concatenate(grads,axis=0)
+
     def set_softness(self, softness=666.):
         for i in self.primitives:
             i.softness[None] = softness

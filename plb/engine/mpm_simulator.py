@@ -1,5 +1,7 @@
 import taichi as ti
 import numpy as np
+import torch
+import torch.nn as nn
 
 
 @ti.data_oriented
@@ -66,6 +68,19 @@ class MPMSimulator:
         # gravity ...
         self.gravity = ti.Vector.field(dim, dtype=dtype, shape=())
         self.primitives = primitives
+
+        # torch neural net
+        self.nn = None
+        self.torch_actions = []
+        self.torch_obs = []
+        self.obs_num = None
+
+    def set_nn(self,nn):
+        self.nn = nn
+
+    def set_obs_num(self,n_observed_particles):
+        self.obs_num = n_observed_particles
+        self.obs_step = (self.n_particles//n_observed_particles)
 
     def initialize(self):
         self.gravity[None] = self.default_gravity
@@ -374,6 +389,8 @@ class MPMSimulator:
     def reset(self, x):
         self.reset_kernel(x)
         self.cur = 0
+        self.torch_actions = []
+        self.torch_obs = []
 
     @ti.kernel
     def get_x_kernel(self, f: ti.i32, x: ti.ext_arr()):
@@ -450,6 +467,46 @@ class MPMSimulator:
                 for d in ti.static(range(self.dim)):
                     weight *= w[offset[d]][d]
                 self.grid_m[base + offset] += weight * self.p_mass
+
+    @ti.complex_kernel
+    def act(self,obs,cur,a):
+        obs_tensor = torch.from_numpy(obs).requires_grad_()
+        self.torch_obs.append(obs_tensor)
+        action = self.nn(obs_tensor)
+        self.torch_actions.append(action)
+        a[:] = action.detach().numpy()[:]
+        
+
+    @ti.complex_kernel_grad(act)
+    def act_grad(self,obs,cur,a):
+        action = self.torch_actions.pop()
+        # This get the gradient for a action
+        actuation_grad = self.primitives.get_step_grad(cur) # TODO: Implement Done
+        action.backward(torch.from_numpy(actuation_grad))
+        # Should be a function which calls multiple kernel function to set gradient
+        state_grad = self.torch_obs.pop().grad
+        self.set_input_particles_grad(cur,state_grad.numpy()) # TODO: Implement may be tricky
+        self.set_input_primitives_grad(cur,state_grad.numpy())
+        
+    @ti.kernel
+    def set_input_particles_grad(self,t: ti.i32,grad:ti.ext_arr()):
+        for i in range(self.obs_num):
+            for j in ti.static(range(3)):
+                self.x.grad[t*self.substeps, i * self.obs_step][j] += grad[i*6+j]
+            for j in ti.static(range(3)):
+                self.v.grad[t*self.substeps, i * self.obs_step][j] += grad[i*6+j+3]
+
+    @ti.kernel
+    def set_input_primitives_grad(self,t: ti.i32,grad:ti.ext_arr()):
+        base = self.obs_num * 6
+        for i in ti.static(range(len(self.primitives))):
+            for j in ti.static(range(3)):
+                self.primitives[i].position.grad[t*self.substeps][j] += grad[base+i*7+j]
+            for j in ti.static(range(4)):
+                self.primitives[i].rotation.grad[t*self.substeps][j] += grad[base+i*7+3+j]
+
+
+        
 
     """
     @ti.complex_kernel

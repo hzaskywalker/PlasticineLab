@@ -49,7 +49,8 @@ class SolverTorchNN:
         self.env = env
         self.logger = logger
         self.data_dir = data_dir
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        #self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.device = 'cpu'
         self.nn = MLP(env.observation_space.shape[0], env.action_space.shape[0],
                       hidden=self.cfg.nn.hidden, activation=self.cfg.nn.af).double().to(self.device)
         self.learning_rate = self.cfg.optim.lr
@@ -63,26 +64,25 @@ class SolverTorchNN:
         actions = []
         obs = self.env.reset()
         taichi_env.set_copy(False)
+        taichi_env.set_torch_nn(self.nn)
         with ti.Tape(loss=taichi_env.loss.loss):
             for i in range(self.cfg.horizon):
-                state_tensor = torch.as_tensor(obs).to(self.device)
-                action_var = self.nn(state_tensor) # Need to be wrapped
-                actions.append(action_var)
-                action_np = action_var.data.cpu().numpy()
-                obs, reward, done, loss_info = self.env.step(action_np)
+                action = taichi_env.act(obs) # Need to be wrapped
+                #action_np = action.data.cpu().numpy()
+                obs, reward, done, loss_info = self.env.step(action)
 
                 if self.logger is not None:
                     self.logger.step(
                         None, None, reward, None, i == self.cfg.horizon-1, loss_info)
         loss = taichi_env.loss.loss[None]
 
-        grads = taichi_env.primitives.get_grad(self.cfg.horizon)
-        self.logger.summary_writer.writer.add_histogram(
-            'primitives grad', grads, epoch)
+        #grads = taichi_env.primitives.get_grad(self.cfg.horizon)
+        #self.logger.summary_writer.writer.add_histogram(
+        #    'primitives grad', grads, epoch)
 
-        for action, grad in zip(actions, grads):
-            grad_tensor = torch.as_tensor(grad).to('cuda')
-            action.backward(grad_tensor, retain_graph=True)
+        #for action, grad in zip(actions, grads):
+        #    grad_tensor = torch.as_tensor(grad).to('cuda')
+        #    action.backward(grad_tensor, retain_graph=True)
 
         self.optimizer.step()
         actions_np = [t.data.cpu().numpy() for t in actions]
@@ -139,7 +139,7 @@ class SolverTorchNN:
         return cfg
 
 
-def solve_torch_nn(env, args):
+def solve_torch_nnv2(env, args):
     import os
     import cv2
 

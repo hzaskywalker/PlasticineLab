@@ -209,6 +209,11 @@ class Primitive:
                 grad[i, j] = self.action_buffer.grad[s+i][j]
 
     @ti.kernel
+    def get_step_action_grad_kernel(self,s:ti.i32,grad:ti.ext_arr()):
+        for i in ti.static(range(self.action_dim)):
+            grad[i] = self.action_buffer.grad[s][i]
+
+    @ti.kernel
     def set_velocity(self, s: ti.i32, n_substeps: ti.i32):
         # rewrite set velocity for different
         for j in range(s*n_substeps, (s+1)*n_substeps):
@@ -231,6 +236,14 @@ class Primitive:
         if self.action_dim > 0:
             grad = np.zeros((n, self.action_dim), dtype=np.float64)
             self.get_action_grad_kernel(s, n, grad)
+            return grad
+        else:
+            return None
+
+    def get_step_action_grad(self,s):
+        if self.action_dim > 0:
+            grad = np.zeros(self.action_dim, dtype=np.float64)
+            self.get_step_action_grad_kernel(s,grad)
             return grad
         else:
             return None
