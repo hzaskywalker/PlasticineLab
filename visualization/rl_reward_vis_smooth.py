@@ -12,7 +12,7 @@ parser.add_argument('--end', type=int, default=1000)
 args = parser.parse_args()
 
 assert(args.dir!=None)
-colors = ['red','blue','green','grey','oend','pink','black']
+colors = ['red','blue','green','grey','orange','pink','black']
 
 filenames = os.listdir(args.dir)
 if len(filenames)>7:
@@ -22,11 +22,14 @@ if len(filenames)>7:
 means = []
 stds = []
 for fname in filenames:
+    if not fname.endswith('npy') and not fname.endswith('npz'):
+        print("Skip non-numpy file: %s"%(fname))
+        continue
     arr = np.load(args.dir+'/'+fname)
     min = arr.mean(1).argmin()
     one_cold = np.ones(arr.shape[0])
     one_cold[min] = 0
-    arr = arr[one_cold.astype(np.bool)]
+    arr = arr[one_cold.astype(bool)]
     means.append(gaussian_filter1d(arr.mean(0),sigma=args.smoothing))
     stds.append(gaussian_filter1d(arr.std(0),sigma=args.smoothing))
     
