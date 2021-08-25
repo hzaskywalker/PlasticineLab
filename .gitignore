@@ -1,11 +1,15 @@
 *.jpg
 *.png
+*.pth
+*.out
 data
 *.avi
 *feh_*
 *.pkl
 *__pycache__*
 *tmp*
+**/rewards/**/*.np[zy]
+**/ious/**/*.np[zy]
 *.idea
 *.DS_Store*
 *egg-info*
