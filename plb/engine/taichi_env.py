@@ -121,3 +121,12 @@ class TaichiEnv:
         if self.loss:
             self.loss.reset()
             self.loss.clear()
+    
+    def set_torch_nn(self,nn):
+        self.simulator.set_nn(nn)
+    # obs will be an numpy array
+    # obs will be the last step cur
+    def act(self,obs):
+        action = np.zeros(self.simulator.primitives.action_dims[-1])
+        self.simulator.act(obs,self.simulator.cur,action)
+        return action

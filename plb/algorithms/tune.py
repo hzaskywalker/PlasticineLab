@@ -11,6 +11,7 @@ import torch.nn.functional as F
 from plb.envs import make
 from plb.optimizer.solver_torch_nn import solve_torch_nn
 from plb.optimizer.solver_lstm import solve_lstm
+from plb.optimizer.solver_torch_nnv2 import solve_torch_nnv2
 
 
 def set_random_seed(seed):
@@ -60,7 +61,7 @@ def tune_mlp():
                     env.reset()
                     env.seed(args.seed)
 
-                    solve_torch_nn(env, args)
+                    solve_torch_nnv2(env, args)
 
 
 def tune_lstm():

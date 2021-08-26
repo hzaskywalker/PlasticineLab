@@ -21,6 +21,7 @@ class PlasticineEnv(gym.Env):
         self.taichi_env.set_copy(True)
         self._init_state = self.taichi_env.get_state()
         self._n_observed_particles = self.cfg.n_observed_particles
+        self.taichi_env.simulator.set_obs_num(self._n_observed_particles)
 
         obs = self.reset()
         self.observation_space = Box(-np.inf, np.inf, obs.shape)
