@@ -345,7 +345,10 @@ class MPMSimulator:
 
     def set_state(self, f, state):
         self.setframe(f, *state[:4])
+        # Not used in real case.
+        #print("Reached Here!")
         for s, i in zip(state[4:], self.primitives):
+            #print("state:",s)
             i.set_state(f, s)
 
     @ti.kernel
@@ -404,9 +407,17 @@ class MPMSimulator:
             for j in ti.static(range(self.dim)):
                 v[i, j] = self.v[f, i][j]
 
+    @ti.complex_kernel
+    def get_v_tape(self,f:ti.i32,v:ti.ext_arr()):
+        self.get_v_kernel(f,v)
+
+    @ti.complex_kernel_grad(get_v_tape)
+    def get_v_tape_grad(self,f:ti.i32,v:ti.ext_arr()):
+        return
+
     def get_v(self, f):
         v = np.zeros((self.n_particles, self.dim), dtype=np.float64)
-        self.get_v_kernel(f, v)
+        self.get_v_tape(f, v)
         return v
 
     @ti.kernel

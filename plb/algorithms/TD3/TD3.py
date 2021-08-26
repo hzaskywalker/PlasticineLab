@@ -169,6 +169,7 @@ class TD3(object):
 		noise_clip=0.5,
 		policy_freq=2,
 		enable_latent = False,
+		model_name = None,
 	):
 		print("state_dim:",state_dim,
 			  "action_dim:",action_dim,
@@ -185,7 +186,8 @@ class TD3(object):
 										      hidden_dim = 256,
 										      latent_dim = 1024,
 										      primitive_dim = self.primitive_dim).to(device)
-			self.latent_encoder.load_model('pretrain_model/encoder.pth')
+			assert(model_name!=None)
+			self.latent_encoder.load_model('pretrain_model/{}.pth'.format(model_name))
 			print("Enable Latent!!!",self.latent_encoder.output_dim)
 			self.state_dim = self.latent_encoder.output_dim
 		self.actor = Actor(self.state_dim, action_dim, max_action).to(device)

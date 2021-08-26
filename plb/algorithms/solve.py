@@ -44,7 +44,10 @@ def get_args():
     parser.add_argument("--optim", type=str, default='Adam', choices=['Adam', 'Momentum'])
     parser.add_argument("--srl", action='store_true', default=False)
     parser.add_argument("--loss",type=str,default='chamfer')
-    parser.add_argument("--batch_size",type=int,default=5)
+    parser.add_argument("--batch_size",type=int,default=30)
+    parser.add_argument("--exp_name",type=str,default=None,required=True)
+    parser.add_argument("--model_name",type=str,default=None)
+    parser.add_argument("--horizon",type=int,default=None)
 
     args=parser.parse_args()
 
@@ -56,7 +59,7 @@ def main():
         if args.algo in DIFF_ALGOS:
             args.num_steps = 50 * 200
         else:
-            args.num_steps = 500000
+            args.num_steps = 50000
 
     logger = Logger(args.path)
     set_random_seed(args.seed)
