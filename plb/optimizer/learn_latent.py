@@ -49,7 +49,7 @@ class Solver:
 
     # For multiple step target only support chamfer and emd loss cannot use default loss
     # Here the state might be problematic since only four frame is considered insided of primitives
-    def solve_multistep(self,state,actions,targets,grad_buffer,state_buffer,loss_buffer):
+    def solve_multistep(self,state,actions,targets,grad_buffer,state_buffer,loss_buffer, local_device=device):
         env = self.env
         def forward(state,targets,actions):
             env.set_state(state, self.cfg.softness, False)
@@ -67,7 +67,7 @@ class Solver:
             loss = env.loss.loss[None]
             #print("Cursor After:", env.simulator.cur,"Substeps: ",env.simulator.substeps)
             return loss, env.get_state_grad()
-        x = torch.from_numpy(state[0]).double().to(device)
+        x = torch.from_numpy(state[0]).double().to(local_device)
         x_hat = self.model(x.float())
         loss_first,assignment = compute_emd(x, x_hat, 3000)
         x_hat_after = x_hat[assignment.detach().long()]
@@ -78,7 +78,7 @@ class Solver:
         state_hat = copy.deepcopy(state)
         state_hat[0] = x_hat.cpu().double().detach().numpy()
         loss, (x_hat_grad,_) = forward(state_hat,targets,actions)
-        x_hat_grad = torch.from_numpy(x_hat_grad).clamp(-1,1).to(device)
+        x_hat_grad = torch.from_numpy(x_hat_grad).clamp(-1,1).to(local_device)
         if not torch.isnan(x_hat_grad).any():
             grad_buffer.append(x_hat_grad)
         else:
