@@ -18,7 +18,18 @@ data
 *pytest_cache*
 *.vscode*
 *dsprites-dataset*
-
+action_sin/
+after/
+before/
+ious/
+rewards/
+loggings/
+output/
+pretrain_model/
+tb/
+runs/
+action.npy
+debug_rewards.npy
 *.code-workspace*
 
 *.so*

@@ -42,7 +42,7 @@ class Solver:
                     env.step(action[i])
                     self.total_steps += 1
                     x = env.get_x()
-                    env.compute_loss()
+                    env.compute_loss(taichi_loss=True)
             loss = env.loss.loss[None]
             return loss, env.primitives.get_grad(len(action))
 
@@ -57,7 +57,7 @@ class Solver:
                 action_buffer.append(action[i])
                 self.total_steps += 1
                 self.pc_cnt += 1
-                env.compute_loss()
+                env.compute_loss(taichi_loss=True)
                 env.save_current_state('after/{}'.format(self.pc_cnt))
 
         best_action = None

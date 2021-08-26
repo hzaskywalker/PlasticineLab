@@ -345,7 +345,10 @@ class MPMSimulator:
 
     def set_state(self, f, state):
         self.setframe(f, *state[:4])
+        # Not used in real case.
+        #print("Reached Here!")
         for s, i in zip(state[4:], self.primitives):
+            #print("state:",s)
             i.set_state(f, s)
 
     @ti.kernel

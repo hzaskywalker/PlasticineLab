@@ -153,6 +153,5 @@ def learn_latent(env, path, args):
             batch_cnt += 1
         print("Loss: ",total_loss/batch_cnt)
     print("Total Average Loss:",total_loss/batch_cnt)
-
     torch.save(model.state_dict(),"pretrain_model/emd_finetune_expert2.pth")
     torch.save(model.encoder.state_dict(),"pretrain_model/emd_finetune_expert_encoder2.pth")

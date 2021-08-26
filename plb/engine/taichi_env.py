@@ -84,13 +84,16 @@ class TaichiEnv:
             action = np.array(action)
         self.simulator.step(is_copy=self._is_copy, action=action)
 
-    def compute_loss(self,copy_grad=True,decay=1):
+    def compute_loss(self,copy_grad=True,decay=1,taichi_loss=False):
         assert self.loss is not None
         if self._is_copy:
             self.loss.clear()
             return self.loss.compute_loss(0)
         else:
-            return self.loss.compute_loss(self.simulator.cur,copy_grad,decay=decay)
+            if taichi_loss==False:
+                return self.loss.compute_loss(self.simulator.cur,copy_grad,decay=decay)
+            else:
+                return self.loss.compute_loss(self.simulator.cur)
 
     def get_state(self):
         assert self.simulator.cur == 0
