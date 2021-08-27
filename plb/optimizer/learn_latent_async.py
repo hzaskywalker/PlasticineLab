@@ -12,7 +12,7 @@ from plb.engine.taichi_env import TaichiEnv
 from plb.optimizer.learn_latent import Solver
 
 
-def _device_selector()->torch.device:
+def device_selector()->torch.device:
     """Select the CUDA device
     
     The one with maximum free memory will be picked
@@ -121,7 +121,7 @@ class AsyncSolver(Solver):
             grad_buffer  = messagePack._out_grads,
             state_buffer = messagePack._out_states,
             loss_buffer  = messagePack._out_losses,
-            local_device = _device_selector()
+            local_device = device_selector()
         )
 
         return messagePack
