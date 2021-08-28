@@ -1,15 +1,14 @@
 # Need to use the optimzier from pytorch
 import copy
 import os
-from plb.engine.losses import loss
 from typing import Any, Tuple, Union
+
 
 import taichi as ti
 import torch
 from torch.utils.data.dataloader import DataLoader
 from yacs.config import CfgNode as CN
 
-from .learn_latent_async import device_selector
 from .optim import Optimizer
 from ..engine.losses import compute_emd
 from ..engine.taichi_env import TaichiEnv
@@ -106,11 +105,12 @@ class Solver:
         else:
             return None, None, loss_first, loss
                     
-def update_network_mpi(optimizer, state, gradient, loss, use_loss=True):
+def update_network_mpi(model: torch.nn.Module, optimizer, state, gradient, loss, use_loss=True):
     optimizer.zero_grad()
     state.backward(gradient, retain_graph=True)
     if use_loss:
         loss.backward()
+    mpi_pytorch.mpi_avg_grads(model)
     optimizer.step()
 
 # Need to create specific dataloader for such task
@@ -169,10 +169,9 @@ def learn_latent(env, path, args):
             total_loss += currentLos
             batch_loss += currentLos
 
-            mpi_pytorch.mpi_avg_grads(model)
-            
             if result_state is not None and gradient is not None:
                 update_network_mpi(
+                    model=model,
                     optimizer=optimizer,
                     state=result_state,
                     gradient=gradient,
@@ -180,6 +179,7 @@ def learn_latent(env, path, args):
                 )
 
             mpi_pytorch.sync_params(model)
+
             mpi_tools.msg("Batch:%d"%(batch_cnt//batch_size), "Loss:%d"%(batch_loss/batch_size))
             batch_loss = 0
             batch_cnt += 1
