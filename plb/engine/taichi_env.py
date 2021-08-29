@@ -5,7 +5,8 @@ import taichi as ti
 from .losses import Loss, StateLoss, ChamferLoss, EMDLoss
 
 # TODO: run on GPU, fast_math will cause error on float64's sqrt; removing it cuases compile error..
-ti.init(arch=ti.gpu, debug=False, fast_math=True)
+def init_taichi():
+    ti.init(arch=ti.gpu, debug=False, fast_math=True)
 
 @ti.data_oriented
 class TaichiEnv:

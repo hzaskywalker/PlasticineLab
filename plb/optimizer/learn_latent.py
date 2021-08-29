@@ -1,12 +1,13 @@
 # Need to use the optimzier from pytorch
+from argparse import Namespace
 import copy
 import os
-from typing import Any, Tuple, Union
 
 
 import taichi as ti
 import torch
 from torch.utils.data.dataloader import DataLoader
+from typing import Any, Tuple, Type, Union
 from yacs.config import CfgNode as CN
 
 from .optim import Optimizer
@@ -16,6 +17,9 @@ from ..config.utils import make_cls_config
 from ..neurals.autoencoder import PCNAutoEncoder
 from ..neurals.pcdataloader import ChopSticksDataset
 from ..mpi import mpi_tools, mpi_pytorch
+from ..engine import taichi_env
+from ..engine.losses import state_loss, emd_loss, chamfer_loss, loss
+from ..envs import make
 
 mpi_pytorch.setup_pytorch_for_mpi()
 device = torch.device('cuda:0')
@@ -57,7 +61,7 @@ class Solver:
     # Here the state might be problematic since only four frame is considered insided of primitives
     def solve_multistep(
             self, state, actions, targets, local_device:torch.device=device
-        ) -> Tuple[Union[list, None], Union[torch.Tensor, None], torch.Tensor, Union[torch.Tensor, Any]]:
+        ) -> Tuple[Union[list, None], Union[torch.Tensor, None], torch.Tensor, Any]:
         """ Run the model on the given state and action`s`. 
 
         The model will forward the input state for given steps, and
@@ -101,7 +105,7 @@ class Solver:
         loss, (x_hat_grad,_) = forward(state_hat,targets,actions)
         x_hat_grad = torch.from_numpy(x_hat_grad).clamp(-1,1).to(local_device)
         if not torch.isnan(x_hat_grad).any():
-            return state_hat, x_hat_grad, loss_first, loss
+            return x_hat, x_hat_grad, loss_first, loss
         else:
             return None, None, loss_first, loss
                     
@@ -114,11 +118,42 @@ def update_network_mpi(model: torch.nn.Module, optimizer, state, gradient, loss,
     optimizer.step()
 
 # Need to create specific dataloader for such task
-def learn_latent(env, path, args):
+def learn_latent(
+        args:Namespace,
+        loss_fn:Union[Type[chamfer_loss.ChamferLoss], Type[emd_loss.EMDLoss], Type[state_loss.StateLoss], Type[loss.Loss]]
+    ):
+    """ Learn latent in the MPI way
+
+    NOTE: neither the Taichi nor the PlasticineEnv shall be
+    intialized outside, since the intialization must be
+    executed in sub processes. 
+
+    :param args: Arguments passed from the solver.py, determining
+        the hyperparameters, the paths and the random seeds. 
+    :param loss_fn: the loss function for environment intialization. 
+    """
     # before MPI FORK: intialization & data loading
-    os.makedirs(path,exist_ok=True)
-    epochs, batch_loss, batch_cnt, batch_size = 2, 0, 0, args.batch_size
+    os.makedirs(args.path,exist_ok=True)
+    epochs, batch_loss, batch_cnt, batch_size = 2, 0, 0, args.batch_size, 
+    ## Data related
+    dataset = ChopSticksDataset()
+    dataloader = DataLoader(dataset,batch_size=1)
+    # ---- # ---- # ---- # ---- #
+    # After MPI FORK
+    mpi_tools.mpi_fork(mpi_tools.best_mpi_subprocess_num(batch_size))
     ## Env related
+    taichi_env.init_taichi()
+    env = make(
+        env_name          = args.env_name,
+        nn                = False,
+        sdf_loss          = args.sdf_loss,
+        loss_fn           = loss_fn,
+        density_loss      = args.density_loss,
+        contact_loss      = args.contact_loss,
+        full_obs          = args.srl,
+        soft_contact_loss = args.soft_contact_loss
+    )
+    env.seed(args.seed)
     env.reset()
     taichiEnv: TaichiEnv = env.unwrapped.taichi_env
     T = env._max_episode_steps
@@ -131,14 +166,9 @@ def learn_latent(env, path, args):
     model.load_state_dict(torch.load("pretrain_model/network_emd_finetune.pth")['net_state_dict'])
     torch.save(model.encoder.state_dict(),'pretrain_model/emd_expert_encoder2.pth')
     optimizer = torch.optim.Rprop(model.parameters(),lr=args.lr)
-    ## Data related
-    dataset = ChopSticksDataset()
-    dataloader = DataLoader(dataset,batch_size=1)
-    # ---- # ---- # ---- # ---- #
-    # After MPI FORK
-    mpi_tools.mpi_fork(mpi_tools.best_mpi_subprocess_num(batch_size))
     procLocalDevice = torch.device("cuda:%d"%(mpi_tools.proc_id() % 4))
     model = model.to(procLocalDevice)
+    mpi_tools.msg("DEBUG TORCH DEVICE>>>>>>>", "cuda:%d"%(mpi_tools.proc_id() % 4))
     solver = Solver(
         env       = taichiEnv,
         model     = model,
@@ -160,14 +190,14 @@ def learn_latent(env, path, args):
                      state[4].squeeze().numpy()]
             targets = target[0].squeeze().numpy()
             actions = action.squeeze()
-            result_state, gradient, lossInBuffer, currentLos = solver.solve_multistep(
+            result_state, gradient, lossInBuffer, currentLoss = solver.solve_multistep(
                 state=state,
                 actions=actions,
                 targets=targets,
                 local_device = procLocalDevice
             )
-            total_loss += currentLos
-            batch_loss += currentLos
+            total_loss += currentLoss
+            batch_loss += currentLoss
 
             if result_state is not None and gradient is not None:
                 update_network_mpi(

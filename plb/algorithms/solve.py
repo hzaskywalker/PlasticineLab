@@ -1,4 +1,5 @@
 import argparse
+from plb.engine import taichi_env
 
 import random
 import numpy as np
@@ -72,27 +73,29 @@ def main():
             loss_fn = EMDLoss
     else:
         loss_fn = Loss
-    env = make(args.env_name, nn=(args.algo=='nn'), sdf_loss=args.sdf_loss,loss_fn = loss_fn,
-                            density_loss=args.density_loss, contact_loss=args.contact_loss,full_obs = args.srl,
-                            soft_contact_loss=args.soft_contact_loss)
-    env.seed(args.seed)
-    logger = logger
-    if args.algo == 'sac':
-        train_sac(env, args.path, logger, args)
-    elif args.algo == 'action':
-        solve_action(env, args.path, logger, args)
-    elif args.algo == 'ppo':
-        train_ppo(env, args.path, logger, args)
-    elif args.algo == 'td3':
-        train_td3(env, args.path, logger, args)
-    elif args.algo == 'nn':
-        solve_nn(env, args.path, logger, args)
-    elif args.algo == 'one_step':
-        learn_latent(env, args.path, args)
-    elif args.algo == 'human':
-        human_control(env,args.path,logger,args)
+
+    if args.algo == 'one_step':
+        learn_latent(args, loss_fn)
     else:
-        raise NotImplementedError
+        taichi_env.init_taichi()
+        env = make(args.env_name, nn=(args.algo=='nn'), sdf_loss=args.sdf_loss,loss_fn = loss_fn,
+                                density_loss=args.density_loss, contact_loss=args.contact_loss,full_obs = args.srl,
+                                soft_contact_loss=args.soft_contact_loss)
+        env.seed(args.seed)
+        if args.algo == 'sac':
+            train_sac(env, args.path, logger, args)
+        elif args.algo == 'action':
+            solve_action(env, args.path, logger, args)
+        elif args.algo == 'ppo':
+            train_ppo(env, args.path, logger, args)
+        elif args.algo == 'td3':
+            train_td3(env, args.path, logger, args)
+        elif args.algo == 'nn':
+            solve_nn(env, args.path, logger, args)
+        elif args.algo == 'human':
+            human_control(env,args.path,logger,args)
+        else:
+            raise NotImplementedError
 
 if __name__ == '__main__':
     main()
