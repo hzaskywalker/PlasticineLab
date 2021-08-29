@@ -1,11 +1,23 @@
 from typing import Any, List, Union
 import os, subprocess, sys
 
+import torch
+
 from mpi4py import MPI
 import numpy as np
 import pynvml
 
 def best_mpi_subprocess_num(batch_size: int) -> int:
+    """ Determine the most suitable number of sub processes
+
+    The method will returns the minimum of the following:
+    * batch size;
+    * number of GPU cores, and
+    * number of CPU cores. 
+
+    :param batch_size: the size of each batch
+    :return: the minimum of the above three
+    """
     cpu_num = os.cpu_count()
     pynvml.nvmlInit()
     num_cuda = pynvml.nvmlDeviceGetCount()
@@ -54,20 +66,23 @@ def num_procs() -> int:
     """Count active MPI processes."""
     return MPI.COMM_WORLD.Get_size()
 
-def broadcast(x: Union[np.ndarray, Any], root: int=0) -> None:
+def broadcast(x: Union[torch.Tensor, np.ndarray, Any], root: int=0) -> None:
     MPI.COMM_WORLD.Bcast(x, root=root)
 
-def mpi_op(x: Union[np.ndarray, List, Any], op):
+def mpi_op(x: Union[torch.Tensor, np.ndarray, List, Any], op):
     x, scalar = ([x], True) if np.isscalar(x) else (x, False)
-    x = np.asarray(x, dtype=np.float32)
+    if isinstance(x, torch.Tensor):
+        x = np.asarray(x.cpu(), dtype=np.float32)
+    else:
+        x = np.asarray(x, dtype=np.float32)
     buff = np.zeros_like(x, dtype=np.float32)
     allreduce(x, buff, op=op)
     return buff[0] if scalar else buff
 
-def mpi_sum(x: Union[np.ndarray, List, Any]):
+def mpi_sum(x: Union[torch.Tensor, np.ndarray, List, Any]):
     return mpi_op(x, MPI.SUM)
 
-def mpi_avg(x):
+def mpi_avg(x: Union[torch.Tensor, np.ndarray, List, Any]):
     """Average a scalar or vector over MPI processes."""
     return mpi_sum(x) / num_procs()
     

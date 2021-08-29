@@ -2,6 +2,10 @@
 from argparse import Namespace
 import copy
 import os
+from plb import optimizer
+from plb.algorithms.ppo.ppo import model
+
+from torch.utils.data import dataloader
 
 
 import taichi as ti
@@ -20,20 +24,25 @@ from ..mpi import mpi_tools, mpi_pytorch
 from ..engine import taichi_env
 from ..engine.losses import state_loss, emd_loss, chamfer_loss, loss
 from ..envs import make
+from plb.optimizer import optim
 
 mpi_pytorch.setup_pytorch_for_mpi()
-device = torch.device('cuda:0')
+
+HIDDEN_LAYERS = 256
+LATENT_DIMS   = 1024
+FEAT_DMIS     = 3
 
 class Solver:
     def __init__(self,
-                 env: TaichiEnv,
-                 model,
-                 optimizer,
-                 logger=None,
-                 cfg=None,
-                 decay_factor=0.99,
-                 steps=None,
-                 **kwargs):
+            env: TaichiEnv,
+            model,
+            optimizer,
+            logger=None,
+            cfg=None,
+            decay_factor=0.99,
+            steps=None,
+            **kwargs
+        ):
         self.cfg = make_cls_config(self, cfg, **kwargs)
         self.env = env
         self.logger = logger
@@ -60,7 +69,7 @@ class Solver:
     # For multiple step target only support chamfer and emd loss cannot use default loss
     # Here the state might be problematic since only four frame is considered insided of primitives
     def solve_multistep(
-            self, state, actions, targets, local_device:torch.device=device
+            self, state, actions, targets, local_device:torch.device
         ) -> Tuple[Union[list, None], Union[torch.Tensor, None], torch.Tensor, Any]:
         """ Run the model on the given state and action`s`. 
 
@@ -109,7 +118,7 @@ class Solver:
         else:
             return None, None, loss_first, loss
                     
-def update_network_mpi(model: torch.nn.Module, optimizer, state, gradient, loss, use_loss=True):
+def _update_network_mpi(model: torch.nn.Module, optimizer, state, gradient, loss, use_loss=True):
     optimizer.zero_grad()
     state.backward(gradient, retain_graph=True)
     if use_loss:
@@ -118,6 +127,60 @@ def update_network_mpi(model: torch.nn.Module, optimizer, state, gradient, loss,
     optimizer.step()
 
 # Need to create specific dataloader for such task
+def _loading_dataset()->DataLoader:
+    """ Load data to memory
+
+    :return: a dataloader of ChopSticksDataset
+    """
+    dataset = ChopSticksDataset()
+    dataloader = DataLoader(dataset,batch_size=1)
+    return dataloader
+
+def _intialize_env(
+    envName: str,
+    sdfLoss: float, 
+    lossFn:  Union[Type[chamfer_loss.ChamferLoss], Type[emd_loss.EMDLoss], Type[state_loss.StateLoss], Type[loss.Loss]],
+    densityLoss: float,
+    contactLoss: float,
+    srl: bool, 
+    softContactLoss: bool,
+    seed: int
+) -> Tuple[TaichiEnv, int]:
+    """ Intialize the environment from the arguments
+
+    The parameters all come from the arguments
+
+    :return: the intialized taichi environment, together with the max episode step of this env
+    """
+    taichi_env.init_taichi()
+    env = make(
+        env_name          = envName,
+        nn                = False,
+        sdf_loss          = sdfLoss,
+        loss_fn           = lossFn,
+        density_loss      = densityLoss,
+        contact_loss      = contactLoss,
+        full_obs          = srl,
+        soft_contact_loss = softContactLoss
+    )
+    env.seed(seed)
+    env.reset()
+    T = env._max_episode_steps
+    return env.unwrapped.taichi_env, T
+
+def _intialize_model(taichiEnv: TaichiEnv, device: torch.device)->PCNAutoEncoder:
+    """ Intialize the model from a given TaichiEnv onto a certain device
+
+    :param taichiEnv: the environment
+    :param device: the device to which the model should be loaded to
+    :return: the intialized encoding model
+    """
+    model = PCNAutoEncoder(taichiEnv.n_particles, HIDDEN_LAYERS, LATENT_DIMS, FEAT_DMIS)
+    model.load_state_dict(torch.load("pretrain_model/network_emd_finetune.pth")['net_state_dict'])
+    torch.save(model.encoder.state_dict(),'pretrain_model/emd_expert_encoder2.pth')
+    model = model.to(device)
+    return model
+
 def learn_latent(
         args:Namespace,
         loss_fn:Union[Type[chamfer_loss.ChamferLoss], Type[emd_loss.EMDLoss], Type[state_loss.StateLoss], Type[loss.Loss]]
@@ -133,42 +196,21 @@ def learn_latent(
     :param loss_fn: the loss function for environment intialization. 
     """
     # before MPI FORK: intialization & data loading
-    os.makedirs(args.path,exist_ok=True)
+    os.makedirs(args.path, exist_ok=True)
     epochs, batch_loss, batch_cnt, batch_size = 2, 0, 0, args.batch_size, 
-    ## Data related
-    dataset = ChopSticksDataset()
-    dataloader = DataLoader(dataset,batch_size=1)
-    # ---- # ---- # ---- # ---- #
+
     # After MPI FORK
     mpi_tools.mpi_fork(mpi_tools.best_mpi_subprocess_num(batch_size))
-    ## Env related
-    taichi_env.init_taichi()
-    env = make(
-        env_name          = args.env_name,
-        nn                = False,
-        sdf_loss          = args.sdf_loss,
-        loss_fn           = loss_fn,
-        density_loss      = args.density_loss,
-        contact_loss      = args.contact_loss,
-        full_obs          = args.srl,
-        soft_contact_loss = args.soft_contact_loss
-    )
-    env.seed(args.seed)
-    env.reset()
-    taichiEnv: TaichiEnv = env.unwrapped.taichi_env
-    T = env._max_episode_steps
-    print("TaichiEnv Number of Particles:",taichiEnv.n_particles)
-    ## Model related, NOTE load to device after MPI fork
-    model = PCNAutoEncoder(n_particles = taichiEnv.n_particles,
-                           hidden_dim = 256,
-                           latent_dim = 1024,
-                           feat_dim=3)
-    model.load_state_dict(torch.load("pretrain_model/network_emd_finetune.pth")['net_state_dict'])
-    torch.save(model.encoder.state_dict(),'pretrain_model/emd_expert_encoder2.pth')
-    optimizer = torch.optim.Rprop(model.parameters(),lr=args.lr)
-    procLocalDevice = torch.device("cuda:%d"%(mpi_tools.proc_id() % 4))
-    model = model.to(procLocalDevice)
-    mpi_tools.msg("DEBUG TORCH DEVICE>>>>>>>", "cuda:%d"%(mpi_tools.proc_id() % 4))
+    subprocessCnt = mpi_tools.num_procs()
+    procLocalDevice = torch.device("cuda")
+
+    dataloader = _loading_dataset()
+    taichiEnv, T = _intialize_env(args.env_name, args.sdf_loss, loss_fn, args.density_loss,
+                                  args.contact_loss, args.srl, args.soft_contact_loss, args.seed)
+    model = _intialize_model(taichiEnv, procLocalDevice)
+    optimizer = torch.optim.Rprop(model.parameters(), lr=args.lr)
+    mpi_tools.msg(f"TaichiEnv Number of Particles:{taichiEnv.n_particles}")
+
     solver = Solver(
         env       = taichiEnv,
         model     = model,
@@ -181,7 +223,7 @@ def learn_latent(
         **{"optim.lr": args.lr, "optim.type":args.optim, "init_range":0.0001}
     )
 
-    for _ in range(epochs):
+    for i in range(epochs):
         total_loss = 0
         batch_cnt = 0
         for state,target,action in dataloader:
@@ -200,7 +242,7 @@ def learn_latent(
             batch_loss += currentLoss
 
             if result_state is not None and gradient is not None:
-                update_network_mpi(
+                _update_network_mpi(
                     model=model,
                     optimizer=optimizer,
                     state=result_state,
@@ -209,12 +251,11 @@ def learn_latent(
                 )
 
             mpi_pytorch.sync_params(model)
-
-            mpi_tools.msg("Batch:%d"%(batch_cnt//batch_size), "Loss:%d"%(batch_loss/batch_size))
+            mpi_tools.msg(f"Batch:{batch_cnt//subprocessCnt}, loss:{batch_loss/subprocessCnt}")
             batch_loss = 0
             batch_cnt += 1
-        mpi_tools.msg("Epoch:%d"%(), "loss: ", total_loss/batch_cnt)
-    mpi_tools.msgn("", "Total Average Loss:",total_loss/batch_cnt)
+        mpi_tools.msg(f"Epoch:{i}, average loss:{total_loss/batch_cnt}")
+    mpi_tools.msg(f"Total average loss: {total_loss/batch_cnt}")
 
     if mpi_tools.proc_id() == 0:
         # ONLY one proc can store the model

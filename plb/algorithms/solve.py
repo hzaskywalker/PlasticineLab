@@ -1,13 +1,21 @@
 import argparse
-from plb.engine import taichi_env
+import os
 
 import random
 import numpy as np
 import torch
 
+from plb.mpi import mpi_tools
+
+if os.getenv("IN_MPI") is not None:
+    cudaCore = mpi_tools.proc_id() % mpi_tools.num_procs()
+    os.environ['CUDA_VISIBLE_DEVICES'] = f'{cudaCore}'
+    mpi_tools.msg(f"DEBUG GPU CORE>>>>>>> cuda:{cudaCore}")
+    
+
+from plb.engine import taichi_env
 from plb.envs import make
 from plb.algorithms.logger import Logger
-
 from plb.algorithms.sac.run_sac import train as train_sac
 from plb.algorithms.ppo.run_ppo import train_ppo
 from plb.algorithms.TD3.run_td3 import train_td3
