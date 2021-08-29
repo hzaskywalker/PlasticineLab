@@ -2,11 +2,6 @@
 from argparse import Namespace
 import copy
 import os
-from plb import optimizer
-from plb.algorithms.ppo.ppo import model
-
-from torch.utils.data import dataloader
-
 
 import taichi as ti
 import torch
@@ -15,16 +10,15 @@ from typing import Any, Tuple, Type, Union
 from yacs.config import CfgNode as CN
 
 from .optim import Optimizer
-from ..engine.losses import compute_emd
-from ..engine.taichi_env import TaichiEnv
 from ..config.utils import make_cls_config
+from ..engine import taichi_env
+from ..engine.losses import compute_emd
+from ..engine.losses import state_loss, emd_loss, chamfer_loss, loss
+from ..engine.taichi_env import TaichiEnv
+from ..envs import make
+from ..mpi import mpi_tools, mpi_pytorch
 from ..neurals.autoencoder import PCNAutoEncoder
 from ..neurals.pcdataloader import ChopSticksDataset
-from ..mpi import mpi_tools, mpi_pytorch
-from ..engine import taichi_env
-from ..engine.losses import state_loss, emd_loss, chamfer_loss, loss
-from ..envs import make
-from plb.optimizer import optim
 
 mpi_pytorch.setup_pytorch_for_mpi()
 
