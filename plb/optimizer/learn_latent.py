@@ -63,7 +63,7 @@ class Solver:
     # For multiple step target only support chamfer and emd loss cannot use default loss
     # Here the state might be problematic since only four frame is considered insided of primitives
     def solve_multistep(
-            self, state, actions, targets, local_device:torch.device
+            self, state, actions, targets, localDevice:torch.device
         ) -> Tuple[Union[list, None], Union[torch.Tensor, None], torch.Tensor, Any]:
         """ Run the model on the given state and action`s`. 
 
@@ -95,30 +95,30 @@ class Solver:
                     env.compute_loss(copy_grad=False,decay=self.decay_factor)
                 env.set_grad()
             loss = env.loss.loss[None]
-            #print("Cursor After:", env.simulator.cur,"Substeps: ",env.simulator.substeps)
             return loss, env.get_state_grad()
-        x = torch.from_numpy(state[0]).double().to(local_device)
+        x = torch.from_numpy(state[0]).double().to(localDevice)
         x_hat = self.model(x.float())
         loss_first,assignment = compute_emd(x, x_hat, 3000)
         x_hat_after = x_hat[assignment.detach().long()]
         x_hat = x_hat_after
-        #print("Cursor:",env.simulator.cur)
         state_hat = copy.deepcopy(state)
         state_hat[0] = x_hat.cpu().double().detach().numpy()
         loss, (x_hat_grad,_) = forward(state_hat,targets,actions)
-        x_hat_grad = torch.from_numpy(x_hat_grad).clamp(-1,1).to(local_device)
+        x_hat_grad = torch.from_numpy(x_hat_grad).clamp(-1,1).to(localDevice)
         if not torch.isnan(x_hat_grad).any():
             return x_hat, x_hat_grad, loss_first, loss
         else:
             return None, None, loss_first, loss
                     
 def _update_network_mpi(model: torch.nn.Module, optimizer, state, gradient, loss, use_loss=True):
-    optimizer.zero_grad()
-    state.backward(gradient, retain_graph=True)
-    if use_loss:
-        loss.backward()
+    if state is not None and gradient is not None:
+        optimizer.zero_grad()
+        state.backward(gradient, retain_graph=True)
+        if use_loss:
+            loss.backward()
     mpi_pytorch.mpi_avg_grads(model)
-    optimizer.step()
+    if state is not None and gradient is not None:
+        optimizer.step()
 
 # Need to create specific dataloader for such task
 def _loading_dataset()->DataLoader:
@@ -195,7 +195,6 @@ def learn_latent(
 
     # After MPI FORK
     mpi_tools.mpi_fork(mpi_tools.best_mpi_subprocess_num(batch_size))
-    subprocessCnt = mpi_tools.num_procs()
     procLocalDevice = torch.device("cuda")
 
     dataloader = _loading_dataset()
@@ -230,19 +229,18 @@ def learn_latent(
                 state=state,
                 actions=actions,
                 targets=targets,
-                local_device = procLocalDevice
+                localDevice = procLocalDevice
             )
             total_loss += currentLoss
             batch_loss += currentLoss
 
-            if result_state is not None and gradient is not None:
-                _update_network_mpi(
-                    model=model,
-                    optimizer=optimizer,
-                    state=result_state,
-                    gradient=gradient,
-                    loss=lossInBuffer
-                )
+            _update_network_mpi(
+                model=model,
+                optimizer=optimizer,
+                state=result_state,
+                gradient=gradient,
+                loss=lossInBuffer
+            )
 
             mpi_pytorch.sync_params(model)
             mpi_tools.msg(f"Batch:{batch_cnt}, loss:{batch_loss}")
