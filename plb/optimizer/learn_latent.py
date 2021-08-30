@@ -245,7 +245,7 @@ def learn_latent(
                 )
 
             mpi_pytorch.sync_params(model)
-            mpi_tools.msg(f"Batch:{batch_cnt//subprocessCnt}, loss:{batch_loss/subprocessCnt}")
+            mpi_tools.msg(f"Batch:{batch_cnt}, loss:{batch_loss}")
             batch_loss = 0
             batch_cnt += 1
         mpi_tools.msg(f"Epoch:{i}, average loss:{total_loss/batch_cnt}")
