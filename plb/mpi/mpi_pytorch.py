@@ -1,6 +1,7 @@
+from typing import Any, List
 import torch
 from torch import nn
-from .mpi_tools import broadcast, mpi_avg, num_procs
+from .mpi_tools import broadcast, mpi_avg, num_procs, proc_id
 
 def setup_pytorch_for_mpi() -> None:
     """
@@ -13,6 +14,25 @@ def setup_pytorch_for_mpi() -> None:
     fair_num_threads = max(int(torch.get_num_threads() / num_procs()), 1)
     torch.set_num_threads(fair_num_threads)
     #print('Proc %d: Reporting new number of Torch threads as %d.'%(proc_id(), torch.get_num_threads()), flush=True)
+
+def batch_collate(batch: List[Any]) -> List[Any]:
+    """ Select the ones for the current process from the batch of testing result
+
+    Example, 4 procosse and the batch is of length 8, then
+    batchPerProc = 2, so
+    batch[0], batch[1] => proc No.0
+    batch[2], batch[3] => proc No.1
+    batch[4], batch[5] => proc No.2
+    batch[6], batch[7] => proc No.3
+
+    :param batch: the batch from which testing data are to be selected
+    """
+    rank, batchLen, procCnt = proc_id(), len(batch), num_procs()
+    batchPerProc   = batchLen // procCnt
+    assert batchPerProc > 0, \
+        f"a batch must be at least of length {procCnt} as there are" +\
+        f"{procCnt} processes, but {batchLen} in fact"
+    return batch[rank * batchPerProc : (rank + 1) * batchPerProc]
 
 def mpi_avg_grads(module: nn.Module) -> None:
     """ Average contents of gradient buffers across MPI processes. """
