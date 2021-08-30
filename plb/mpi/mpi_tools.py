@@ -25,6 +25,17 @@ def best_mpi_subprocess_num(batch_size: int) -> int:
 
     return min(batch_size, cpu_num, num_cuda)
 
+def _abs_path_2_module_name(absPath:str) -> str:
+    absPath = absPath.rstrip('.py').split('/')
+    repoRoot = os.path.abspath('.').split('/') # path to where the python -m is originally executed
+    i = 0
+    while i < min(len(absPath), len(repoRoot)):
+        if absPath[i] == repoRoot[i]: i += 1
+        else:                         break
+    return '.'.join(absPath[i:])
+    
+
+
 def mpi_fork(n: int, bind_to_core: bool=False) -> None:
     """
     Re-launches the current script with workers linked by MPI.
@@ -48,7 +59,7 @@ def mpi_fork(n: int, bind_to_core: bool=False) -> None:
         args = ["mpirun", "-np", str(n)]
         if bind_to_core:
             args += ["-bind-to", "core"]
-        args += [sys.executable] + sys.argv
+        args += ['python3', '-m', _abs_path_2_module_name(sys.argv[0])] + sys.argv[1:]
         subprocess.check_call(args, env=env)
         sys.exit()
 
