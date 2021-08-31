@@ -1,6 +1,7 @@
-from typing import Any, List
+from typing import Union, Generator
+from numpy import ndarray
 import torch
-from torch import nn
+from torch import Tensor, nn
 from .mpi_tools import broadcast, mpi_avg, num_procs, proc_id
 
 def setup_pytorch_for_mpi() -> None:
@@ -15,7 +16,7 @@ def setup_pytorch_for_mpi() -> None:
     torch.set_num_threads(fair_num_threads)
     #print('Proc %d: Reporting new number of Torch threads as %d.'%(proc_id(), torch.get_num_threads()), flush=True)
 
-def batch_collate(batch: List[Any]) -> List[Any]:
+def batch_collate(*batchs: Tensor, toNumpy: bool = False) -> Generator[Union[Tensor, ndarray], None, None]:
     """ Select the ones for the current process from the batch of testing result
 
     Example, 4 procosse and the batch is of length 8, then
@@ -27,12 +28,21 @@ def batch_collate(batch: List[Any]) -> List[Any]:
 
     :param batch: the batch from which testing data are to be selected
     """
-    rank, batchLen, procCnt = proc_id(), len(batch), num_procs()
-    batchPerProc   = batchLen // procCnt
-    assert batchPerProc > 0, \
-        f"a batch must be at least of length {procCnt} as there are" +\
-        f"{procCnt} processes, but {batchLen} in fact"
-    return batch[rank * batchPerProc : (rank + 1) * batchPerProc]
+    rank, batchLen, procCnt = proc_id(), len(batchs[0]), num_procs()
+    assert all(len(batch) == batchLen for batch in batchs), \
+        "all batch must be of the same length, but the lengths " \
+        + f"are {[len(batch) for batch in batchs]}"
+    
+    batchPerProc = min(batchLen // procCnt, 1)
+    
+    if batchPerProc == 1 and all(hasattr(batch, "squeeze") for batch in batchs):
+        gen = (batch[rank % batchLen].squeeze() for batch in batchs)
+    else:
+        gen = (batch[(rank * batchPerProc) % batchLen : ((rank + 1) * batchPerProc) % batchLen] for batch in batchs)
+    
+    if toNumpy and all(isinstance(batch, Tensor) for batch in batchs):
+        return (batch.numpy() for batch in gen)
+    return gen
 
 def mpi_avg_grads(module: nn.Module) -> None:
     """ Average contents of gradient buffers across MPI processes. """

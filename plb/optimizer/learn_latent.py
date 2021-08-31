@@ -127,7 +127,7 @@ def _loading_dataset()->DataLoader:
     :return: a dataloader of ChopSticksDataset
     """
     dataset = ChopSticksDataset()
-    dataloader = DataLoader(dataset,batch_size=1)
+    dataloader = DataLoader(dataset,batch_size=mpi_tools.num_procs())
     return dataloader
 
 def _intialize_env(
@@ -219,16 +219,22 @@ def learn_latent(
     for i in range(epochs):
         total_loss = 0
         batch_cnt = 0
-        for state,target,action in dataloader:
-            state = [state[0].squeeze().numpy(),state[1].squeeze().numpy(),
-                     state[2].squeeze().numpy(),state[3].squeeze().numpy(),
-                     state[4].squeeze().numpy()]
-            targets = target[0].squeeze().numpy()
-            actions = action.squeeze()
+        for stateMiniBatch, targetMiniBatch, actionMiniBatch in dataloader:
+            stateProc = list(mpi_pytorch.batch_collate(
+                stateMiniBatch[0], stateMiniBatch[1], stateMiniBatch[2], stateMiniBatch[3], stateMiniBatch[4],
+                toNumpy=True
+            ))
+            targetProc, actionProc = mpi_pytorch.batch_collate(
+                targetMiniBatch[0], actionMiniBatch, 
+                toNumpy=True
+            )
+            # mpi_tools.msg(f"state:{[eachState.shape for eachState in stateProc]}, " +\
+            #     f"target:{targetProc.shape}, " +\
+            #     f"action:{actionProc.shape}")
             result_state, gradient, lossInBuffer, currentLoss = solver.solve_multistep(
-                state=state,
-                actions=actions,
-                targets=targets,
+                state=stateProc,
+                actions=actionProc,
+                targets=targetProc,
                 localDevice = procLocalDevice
             )
             total_loss += currentLoss
