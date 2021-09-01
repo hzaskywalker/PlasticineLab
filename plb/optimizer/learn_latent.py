@@ -194,7 +194,7 @@ def learn_latent(
     epochs, batch_loss, batch_cnt, batch_size = 2, 0, 0, args.batch_size, 
 
     # After MPI FORK
-    mpi_tools.mpi_fork(mpi_tools.best_mpi_subprocess_num(batch_size, procPerGPU=1))
+    mpi_tools.mpi_fork(mpi_tools.best_mpi_subprocess_num(batch_size, procPerGPU=2))
     procLocalDevice = torch.device("cuda")
 
     dataloader = _loading_dataset()
