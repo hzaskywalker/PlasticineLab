@@ -33,7 +33,7 @@ def batch_collate(*batchs: Tensor, toNumpy: bool = False) -> Generator[Union[Ten
         "all batch must be of the same length, but the lengths " \
         + f"are {[len(batch) for batch in batchs]}"
     
-    batchPerProc = min(batchLen // procCnt, 1)
+    batchPerProc = max(batchLen // procCnt, 1)
     
     if batchPerProc == 1 and all(hasattr(batch, "squeeze") for batch in batchs):
         gen = (batch[rank % batchLen].squeeze() for batch in batchs)
