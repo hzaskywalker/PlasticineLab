@@ -35,7 +35,21 @@ def _abs_path_2_module_name(absPath:str) -> str:
         else:                         break
     return '.'.join(absPath[i:])
     
+def _all_reduce(*args, **kwargs):
+    return MPI.COMM_WORLD.Allreduce(*args, **kwargs)
 
+def _op(x: Union[torch.Tensor, np.ndarray, List, Any], op):
+    x, scalar = ([x], True) if np.isscalar(x) else (x, False)
+    if isinstance(x, torch.Tensor):
+        x = np.asarray(x.cpu(), dtype=np.float32)
+    else:
+        x = np.asarray(x, dtype=np.float32)
+    buff = np.zeros_like(x, dtype=np.float32)
+    _all_reduce(x, buff, op=op)
+    return buff[0] if scalar else buff
+
+def _sum(x: Union[torch.Tensor, np.ndarray, List, Any]):
+    return _op(x, MPI.SUM)
 
 def mpi_fork(n: int, bind_to_core: bool=False) -> None:
     """
@@ -71,52 +85,45 @@ def proc_id() -> int:
     """Get rank of calling process."""
     return MPI.COMM_WORLD.Get_rank()
 
-def allreduce(*args, **kwargs):
-    return MPI.COMM_WORLD.Allreduce(*args, **kwargs)
-
 def num_procs() -> int:
     """Count active MPI processes."""
     return MPI.COMM_WORLD.Get_size()
 
 def broadcast(x: Union[torch.Tensor, np.ndarray, Any], root: int=0) -> None:
+    """Broadcast the variable across the processes
+
+    The varaible will be shared FROM the process identified
+    by `root` to others. 
+    
+    :param x: the variable to be broadcasted
+    :param root: the process ID of root
+    """
     MPI.COMM_WORLD.Bcast(x, root=root)
-
-def mpi_op(x: Union[torch.Tensor, np.ndarray, List, Any], op):
-    x, scalar = ([x], True) if np.isscalar(x) else (x, False)
-    if isinstance(x, torch.Tensor):
-        x = np.asarray(x.cpu(), dtype=np.float32)
-    else:
-        x = np.asarray(x, dtype=np.float32)
-    buff = np.zeros_like(x, dtype=np.float32)
-    allreduce(x, buff, op=op)
-    return buff[0] if scalar else buff
-
-def mpi_sum(x: Union[torch.Tensor, np.ndarray, List, Any]):
-    return mpi_op(x, MPI.SUM)
 
 def mpi_avg(x: Union[torch.Tensor, np.ndarray, List, Any], base=1):
     """Average a scalar or vector over MPI processes."""
-    dividor = max(mpi_sum(base), 1)
-    return mpi_sum(x) / dividor
+    dividor = max(_sum(base), 1)
+    return _sum(x) / dividor
     
 def mpi_statistics_scalar(x: List, with_min_and_max=False):
-    """
-    Get mean/std and optional min/max of scalar x across MPI processes.
-    Args:
-        x: An array containing samples of the scalar to produce statistics
-            for.
-        with_min_and_max (bool): If true, return min and max of x in 
-            addition to mean and std.
+    """Get mean/std and optional min/max of scalar x across MPI processes.
+    
+    :param x: An array containing samples of the scalar to produce
+        statistics for.
+    :param with_min_and_max: If true, return min and max of x in 
+        addition to mean and std.
+    
+    :return: mean, and the standard deviation
     """
     x = np.array(x, dtype=np.float32)
-    global_sum, global_n = mpi_sum([np.sum(x), len(x)])
+    global_sum, global_n = _sum([np.sum(x), len(x)])
     mean = global_sum / global_n
 
-    global_sum_sq = mpi_sum(np.sum((x - mean)**2))
+    global_sum_sq = _sum(np.sum((x - mean)**2))
     std = np.sqrt(global_sum_sq / global_n)  # compute global std
 
     if with_min_and_max:
-        global_min = mpi_op(np.min(x) if len(x) > 0 else np.inf, op=MPI.MIN)
-        global_max = mpi_op(np.max(x) if len(x) > 0 else -np.inf, op=MPI.MAX)
+        global_min = _op(np.min(x) if len(x) > 0 else np.inf, op=MPI.MIN)
+        global_max = _op(np.max(x) if len(x) > 0 else -np.inf, op=MPI.MAX)
         return mean, std, global_min, global_max
     return mean, std
