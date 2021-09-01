@@ -2,7 +2,7 @@ from typing import Union, Generator
 from numpy import ndarray
 import torch
 from torch import Tensor, nn
-from .mpi_tools import broadcast, mpi_avg, num_procs, proc_id
+from .mpi_tools import broadcast, mpi_avg, num_procs, proc_id, msg
 
 def setup_pytorch_for_mpi() -> None:
     """
@@ -49,8 +49,12 @@ def mpi_avg_grads(module: nn.Module) -> None:
     if num_procs()==1:
         return
     for p in module.parameters():
-        p_grad_numpy = p.grad.cpu().numpy()   # numpy view of tensor data
-        avg_p_grad = mpi_avg(p.grad)
+        if p.grad is None:
+            msg(f"{module}'s parameter {p} has None gradient")
+            avg_p_grad = mpi_avg(torch.Tensor([0]), base=0)
+        else:
+            p_grad_numpy = p.grad.cpu().numpy()   # numpy view of tensor data
+            avg_p_grad = mpi_avg(p.grad)
         p_grad_numpy[:] = avg_p_grad[:]
 
 def sync_params(module: nn.Module) -> None:

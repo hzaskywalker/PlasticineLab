@@ -94,9 +94,9 @@ def mpi_op(x: Union[torch.Tensor, np.ndarray, List, Any], op):
 def mpi_sum(x: Union[torch.Tensor, np.ndarray, List, Any]):
     return mpi_op(x, MPI.SUM)
 
-def mpi_avg(x: Union[torch.Tensor, np.ndarray, List, Any]):
+def mpi_avg(x: Union[torch.Tensor, np.ndarray, List, Any], base=1):
     """Average a scalar or vector over MPI processes."""
-    return mpi_sum(x) / num_procs()
+    return mpi_sum(x) / mpi_sum(base)
     
 def mpi_statistics_scalar(x: List, with_min_and_max=False):
     """
