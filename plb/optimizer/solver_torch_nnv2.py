@@ -16,7 +16,8 @@ from ..config.utils import make_cls_config
 
 AF = {
     "Tanh": F.tanh,
-    "ReLU": F.relu
+    "ReLU": F.relu,
+    "LeakyReLU": F.leaky_relu
 }
 
 
