@@ -8,7 +8,7 @@ import torch
 from plb.mpi import mpi_tools
 
 if os.getenv("IN_MPI") is not None:
-    cudaCore = mpi_tools.proc_id() % mpi_tools.num_procs()
+    cudaCore = mpi_tools.proc_id() % mpi_tools.NUM_CUDA
     os.environ['CUDA_VISIBLE_DEVICES'] = f'{cudaCore}'
     mpi_tools.msg(f"DEBUG GPU CORE>>>>>>> cuda:{cudaCore}")
     

@@ -7,23 +7,24 @@ from mpi4py import MPI
 import numpy as np
 import pynvml
 
-def best_mpi_subprocess_num(batch_size: int) -> int:
+pynvml.nvmlInit()
+NUM_CUDA = pynvml.nvmlDeviceGetCount()
+pynvml.nvmlShutdown()
+
+def best_mpi_subprocess_num(batchSize: int, procPerGPU: int = 1) -> int:
     """ Determine the most suitable number of sub processes
 
     The method will returns the minimum of the following:
     * batch size;
-    * number of GPU cores, and
+    * number of GPU cores * procPerGPU and
     * number of CPU cores. 
 
     :param batch_size: the size of each batch
+    :param proPerGPU: how many processes on each GPU
     :return: the minimum of the above three
     """
     cpu_num = os.cpu_count()
-    pynvml.nvmlInit()
-    num_cuda = pynvml.nvmlDeviceGetCount()
-    pynvml.nvmlShutdown()
-
-    return min(batch_size, cpu_num, num_cuda)
+    return min(batchSize, cpu_num, NUM_CUDA * procPerGPU)
 
 def _abs_path_2_module_name(absPath:str) -> str:
     absPath = absPath.rstrip('.py').split('/')

@@ -194,7 +194,7 @@ def learn_latent(
     epochs, batch_loss, batch_cnt, batch_size = 2, 0, 0, args.batch_size, 
 
     # After MPI FORK
-    mpi_tools.mpi_fork(mpi_tools.best_mpi_subprocess_num(batch_size))
+    mpi_tools.mpi_fork(mpi_tools.best_mpi_subprocess_num(batch_size, procPerGPU=1))
     procLocalDevice = torch.device("cuda")
 
     dataloader = _loading_dataset()
@@ -228,9 +228,6 @@ def learn_latent(
                 targetMiniBatch[0], actionMiniBatch, 
                 toNumpy=True
             )
-            # mpi_tools.msg(f"state:{[eachState.shape for eachState in stateProc]}, " +\
-            #     f"target:{targetProc.shape}, " +\
-            #     f"action:{actionProc.shape}")
             result_state, gradient, lossInBuffer, currentLoss = solver.solve_multistep(
                 state=stateProc,
                 actions=actionProc,
