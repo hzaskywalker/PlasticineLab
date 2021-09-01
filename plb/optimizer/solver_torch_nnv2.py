@@ -49,7 +49,7 @@ class SolverTorchNN:
         self.env = env
         self.logger = logger
         self.data_dir = data_dir
-        #self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        # self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.device = 'cpu'
         self.nn = MLP(env.observation_space.shape[0], env.action_space.shape[0],
                       hidden=self.cfg.nn.hidden, activation=self.cfg.nn.af).double().to(self.device)
@@ -67,7 +67,7 @@ class SolverTorchNN:
         taichi_env.set_torch_nn(self.nn)
         with ti.Tape(loss=taichi_env.loss.loss):
             for i in range(self.cfg.horizon):
-                action = taichi_env.act(obs) # Need to be wrapped
+                action = taichi_env.act(obs)  # Need to be wrapped
                 #action_np = action.data.cpu().numpy()
                 obs, reward, done, loss_info = self.env.step(action)
 
@@ -76,13 +76,11 @@ class SolverTorchNN:
                         None, None, reward, None, i == self.cfg.horizon-1, loss_info)
         loss = taichi_env.loss.loss[None]
 
-        #grads = taichi_env.primitives.get_grad(self.cfg.horizon)
-        #self.logger.summary_writer.writer.add_histogram(
-        #    'primitives grad', grads, epoch)
-
-        #for action, grad in zip(actions, grads):
-        #    grad_tensor = torch.as_tensor(grad).to('cuda')
-        #    action.backward(grad_tensor, retain_graph=True)
+        # nn.utils.clip_grad_value_(self.nn.parameters(), clip_value=1.0)
+        nn.utils.clip_grad_norm_(self.nn.parameters(),
+                                 max_norm=1.0, norm_type=2)
+        self.logger.summary_writer.writer.add_histogram(
+            'output layer grad', self.nn.linears[2].weight.grad, epoch)
 
         self.optimizer.step()
         actions_np = [t.data.cpu().numpy() for t in actions]
@@ -143,15 +141,20 @@ def solve_torch_nnv2(env, args):
     import os
     import cv2
 
-    exp_name = f"mlp_{args.env_name}_hidden-{args.hidden}_lr-{args.lr}_af-{args.af}"
+    T = env._max_episode_steps
+
+    nn_name = f"nnv2_gn-{1.0}"
+
+    exp_name = f"{nn_name}_{args.env_name}_horizon-{T}_hidden-{args.hidden}_lr-{args.lr}_af-{args.af}"
+
     path = f"data/{exp_name}/{exp_name}_s{args.seed}"
     os.makedirs(path, exist_ok=True)
     logger = Logger(path, exp_name)
     env.reset()
 
-    T = env._max_episode_steps
     solver = SolverTorchNN(env, logger, data_dir=path,
-                           n_iters=(args.num_steps + T-1)//T, softness=args.softness, horizon=T,
+                           n_iters=200,
+                           softness=args.softness, horizon=T,
                            **{"optim.lr": args.lr, "nn.hidden": args.hidden, "nn.af": args.af})
 
     actions = solver.solve()
