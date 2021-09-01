@@ -50,12 +50,11 @@ def mpi_avg_grads(module: nn.Module) -> None:
         return
     for p in module.parameters():
         if p.grad is None:
-            msg(f"{module}'s parameter {p} has None gradient")
-            avg_p_grad = mpi_avg(torch.Tensor([0]), base=0)
+            mpi_avg(torch.zeros_like(p), base=0)
         else:
             p_grad_numpy = p.grad.cpu().numpy()   # numpy view of tensor data
             avg_p_grad = mpi_avg(p.grad)
-        p_grad_numpy[:] = avg_p_grad[:]
+            p_grad_numpy[:] = avg_p_grad[:]
 
 def sync_params(module: nn.Module) -> None:
     """ Sync all parameters of module across all MPI processes. """
