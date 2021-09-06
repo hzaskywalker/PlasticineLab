@@ -23,10 +23,9 @@ from ..neurals.pcdataloader import ChopSticksDataset
 HIDDEN_LAYERS = 256
 LATENT_DIMS   = 1024
 FEAT_DMIS     = 3
-MPI_ENABLE    = True
 
-if MPI_ENABLE:
-    mpi.setup_pytorch_for_mpi()
+
+mpi.setup_pytorch_for_mpi()
 
 class Solver:
     def __init__(self,
@@ -120,7 +119,7 @@ def _update_network_mpi(model: torch.nn.Module, optimizer, state, gradient, loss
         state.backward(gradient, retain_graph=True)
         if use_loss:
             loss.backward()
-    if MPI_ENABLE and mpi.num_procs()>1: 
+    if mpi.num_procs()>1: 
         mpi.avg_grads(model)
     if state is not None and gradient is not None:
         optimizer.step()
@@ -132,7 +131,7 @@ def _loading_dataset()->DataLoader:
     :return: a dataloader of ChopSticksDataset
     """
     dataset = ChopSticksDataset()
-    dataloader = DataLoader(dataset,batch_size = mpi.num_procs() if MPI_ENABLE else 1)
+    dataloader = DataLoader(dataset,batch_size = mpi.num_procs())
     return dataloader
 
 def _intialize_env(
@@ -202,10 +201,10 @@ def learn_latent(
     """
     # before MPI FORK: intialization & data loading
     os.makedirs(args.path, exist_ok=True)
-    epochs, batch_loss, batch_cnt, batch_size = 2, 0, 0, args.batch_size, 
+    epochs, batchCnt, batch_size = 2, 0, args.batch_size, 
 
     # After MPI FORK
-    if MPI_ENABLE: mpi.fork(mpi.best_mpi_subprocess_num(batch_size, procPerGPU=2))
+    mpi.fork(mpi.best_mpi_subprocess_num(batch_size, procPerGPU=2))
     procLocalDevice = torch.device("cuda")
 
     dataloader = _loading_dataset()
@@ -213,10 +212,7 @@ def learn_latent(
                                   args.contact_loss, args.srl, args.soft_contact_loss, args.seed)
     model = _intialize_model(taichiEnv, procLocalDevice)
     optimizer = torch.optim.Rprop(model.parameters(), lr=args.lr)
-    if MPI_ENABLE:
-        mpi.msg(f"TaichiEnv Number of Particles:{taichiEnv.n_particles}")
-    else:
-        print(f"TaichiEnv Number of Particles:{taichiEnv.n_particles}")
+    mpi.msg(f"TaichiEnv Number of Particles:{taichiEnv.n_particles}")
 
     solver = Solver(
         env       = taichiEnv,
@@ -230,27 +226,32 @@ def learn_latent(
         **{"optim.lr": args.lr, "optim.type":args.optim, "init_range":0.0001}
     )
 
+    procAvgLoss = [0.0] * epochs
     for i in range(epochs):
-        total_loss = 0
-        batch_cnt = 0
+        batchCnt, efficientBatchCnt = 0, 0
         for stateMiniBatch, targetMiniBatch, actionMiniBatch, indexMiniBatch in dataloader:
             stateProc = list(mpi.batch_collate(
                 stateMiniBatch[0], stateMiniBatch[1], stateMiniBatch[2], stateMiniBatch[3], stateMiniBatch[4],
                 toNumpy=True
-            )) if MPI_ENABLE else squeeze_batch(stateMiniBatch)
+            ))
             targetProc, actionProc, indexProc = mpi.batch_collate(
                 targetMiniBatch[0], actionMiniBatch, indexMiniBatch, 
                 toNumpy=True
-            ) if MPI_ENABLE else (targetMiniBatch[0].squeeze().numpy(), actionMiniBatch.squeeze(), indexMiniBatch)
+            )
             result_state, gradient, lossInBuffer, currentLoss = solver.solve_multistep(
                 state=stateProc,
                 actions=actionProc,
                 targets=targetProc,
                 localDevice = procLocalDevice
             )
-            total_loss += currentLoss
-            batch_loss += currentLoss
-
+            # NOTE Barrier #1
+            if result_state is not None and gradient is not None:
+                procAvgLoss[i] += currentLoss
+                batchLoss = mpi.avg(currentLoss)
+                efficientBatchCnt += 1
+            else:
+                batchLoss = mpi.avg(0, base = 0) # skip this batch loss without ruining the barrier
+            # NOTE Barrier #2
             _update_network_mpi(
                 model=model,
                 optimizer=optimizer,
@@ -260,23 +261,21 @@ def learn_latent(
                 use_loss = False
             )
 
-            if MPI_ENABLE and mpi.num_procs()>1: mpi.sync_params(model)
-            if MPI_ENABLE:
-                mpi.msg(f"Batch:{batch_cnt}, loss:{batch_loss}")
-            else:
-                print(f"Batch:{batch_cnt}, loss:{batch_loss}")
-            batch_loss = 0
-            batch_cnt += 1
-        if MPI_ENABLE:
-            mpi.msg(f"Epoch:{i}, average loss:{total_loss/batch_cnt}")
-        else:
-            print(f"Epoch:{i}, average loss:{total_loss/batch_cnt}")
-    if MPI_ENABLE:
-        mpi.msg(f"Total average loss: {total_loss/batch_cnt}")
-    else:
-        print(f"Total average loss: {total_loss/batch_cnt}")
+            if mpi.num_procs()>1: mpi.sync_params(model)
 
-    if not MPI_ENABLE or mpi.proc_id() == 0:
+            if mpi.proc_id() == 0:
+                mpi.msg(f"Batch:{batchCnt}, loss:{batchLoss}")
+            batchCnt += 1
+        procAvgLoss[i] /= efficientBatchCnt
+        mpi.msg(f"Epoch:{i}, process-local average loss:{procAvgLoss[i]}")
+
+    totalAverageLoss = sum(procAvgLoss) / len(procAvgLoss)
+    mpi.msg(f"Total process-local average loss: {totalAverageLoss}")
+    totalAverageLoss = mpi.avg(totalAverageLoss)
+
+
+    if mpi.proc_id() == 0:
         # ONLY one proc can store the model
+        mpi.msg(f"Total global average loss:", mpi.avg(totalAverageLoss))
         torch.save(model.state_dict(),"pretrain_model/emd_finetune_expert2.pth")
         torch.save(model.encoder.state_dict(),"pretrain_model/emd_finetune_expert_encoder2.pth")
