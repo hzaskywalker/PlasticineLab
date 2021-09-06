@@ -23,7 +23,7 @@ from ..neurals.pcdataloader import ChopSticksDataset
 HIDDEN_LAYERS = 256
 LATENT_DIMS   = 1024
 FEAT_DMIS     = 3
-MPI_ENABLE    = False
+MPI_ENABLE    = True
 
 if MPI_ENABLE:
     mpi.setup_pytorch_for_mpi()
@@ -110,15 +110,18 @@ class Solver:
         if not torch.isnan(x_hat_grad).any():
             return x_hat, x_hat_grad, loss_first, loss
         else:
+            mpi.msg("NAN Detected")
             return None, None, loss_first, loss
                     
 def _update_network_mpi(model: torch.nn.Module, optimizer, state, gradient, loss, use_loss=True):
     if state is not None and gradient is not None:
         optimizer.zero_grad()
+        mpi.msg(gradient.norm())
         state.backward(gradient, retain_graph=True)
         if use_loss:
             loss.backward()
-    if MPI_ENABLE: mpi.avg_grads(model)
+    if MPI_ENABLE and mpi.num_procs()>1: 
+        mpi.avg_grads(model)
     if state is not None and gradient is not None:
         optimizer.step()
 
@@ -129,7 +132,7 @@ def _loading_dataset()->DataLoader:
     :return: a dataloader of ChopSticksDataset
     """
     dataset = ChopSticksDataset()
-    dataloader = DataLoader(dataset,batch_size = mpi.num_procs() if MPI_ENABLE else 4)
+    dataloader = DataLoader(dataset,batch_size = mpi.num_procs() if MPI_ENABLE else 1)
     return dataloader
 
 def _intialize_env(
@@ -172,10 +175,16 @@ def _intialize_model(taichiEnv: TaichiEnv, device: torch.device)->PCNAutoEncoder
     :return: the intialized encoding model
     """
     model = PCNAutoEncoder(taichiEnv.n_particles, HIDDEN_LAYERS, LATENT_DIMS, FEAT_DMIS)
-    model.load_state_dict(torch.load("pretrain_model/network_emd_finetune.pth")['net_state_dict'])
+    model.load_state_dict(torch.load("pretrain_model/lyh_model.pth")['net_state_dict'])
     torch.save(model.encoder.state_dict(),'pretrain_model/emd_expert_encoder2.pth')
     model = model.to(device)
     return model
+
+def squeeze_batch(state):
+    state = [state[0].squeeze().numpy(),state[1].squeeze().numpy(),
+             state[2].squeeze().numpy(),state[3].squeeze().numpy(),
+             state[4].squeeze().numpy()]
+    return state
 
 def learn_latent(
         args:Namespace,
@@ -228,11 +237,11 @@ def learn_latent(
             stateProc = list(mpi.batch_collate(
                 stateMiniBatch[0], stateMiniBatch[1], stateMiniBatch[2], stateMiniBatch[3], stateMiniBatch[4],
                 toNumpy=True
-            )) if MPI_ENABLE else stateMiniBatch
+            )) if MPI_ENABLE else squeeze_batch(stateMiniBatch)
             targetProc, actionProc, indexProc = mpi.batch_collate(
                 targetMiniBatch[0], actionMiniBatch, indexMiniBatch, 
                 toNumpy=True
-            ) if MPI_ENABLE else (targetMiniBatch, actionMiniBatch, indexMiniBatch)
+            ) if MPI_ENABLE else (targetMiniBatch[0].squeeze().numpy(), actionMiniBatch.squeeze(), indexMiniBatch)
             result_state, gradient, lossInBuffer, currentLoss = solver.solve_multistep(
                 state=stateProc,
                 actions=actionProc,
@@ -247,10 +256,11 @@ def learn_latent(
                 optimizer=optimizer,
                 state=result_state,
                 gradient=gradient,
-                loss=lossInBuffer
+                loss=lossInBuffer,
+                use_loss = False
             )
 
-            if MPI_ENABLE: mpi.sync_params(model)
+            if MPI_ENABLE and mpi.num_procs()>1: mpi.sync_params(model)
             if MPI_ENABLE:
                 mpi.msg(f"Batch:{batch_cnt}, loss:{batch_loss}")
             else:

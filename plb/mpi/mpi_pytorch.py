@@ -51,6 +51,7 @@ def mpi_avg_grads(module: nn.Module) -> None:
     for p in module.parameters():
         if p.grad is None:
             mpi_avg(torch.zeros_like(p), base=0)
+            msg("None Grad Detected")
         else:
             p_grad_numpy = p.grad.cpu().numpy()   # numpy view of tensor data
             avg_p_grad = mpi_avg(p.grad)

@@ -20,6 +20,7 @@ class PointCloudDataset(Dataset):
         return len(self.state_x)
 
     def __getitem__(self,idx):
+        #idx = 2
         if torch.is_tensor(idx):
             idx = idx.to_list()
         state = [self.state_x[idx],
