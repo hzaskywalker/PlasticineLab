@@ -1,6 +1,7 @@
 import taichi as ti
 import os
 import numpy as np
+import torch
 from ..mpm_simulator import MPMSimulator
 
 @ti.data_oriented
@@ -8,16 +9,20 @@ class PredLoss:
     def __init__(self, cfg):
         self.cfg = cfg
         dtype = self.dtype = ti.f64 # Which may be not
-        self.n_grid = int(128*cfg.quality)
+        cfg.SIMULATOR.defrost()
+        quality = cfg.SIMULATOR.quality
+        if cfg.SIMULATOR.dim == 3:
+            quality = quality*0.5
+        self.n_grid = int(128*quality)
         self.dx = 1/self.n_grid
         self.inv_dx = float(self.n_grid)
-        self.dim = cfg.dim
-        self.n_particles = cfg.n_particles
-        self.res = (self.n_grid,self.n_grid) if dim == 2 else (self.n_grid,self.n_grid,self.n_grid)
+        self.dim = cfg.SIMULATOR.dim
+        self.n_particles = cfg.SIMULATOR.n_particles
+        self.res = (self.n_grid,self.n_grid) if self.dim == 2 else (self.n_grid,self.n_grid,self.n_grid)
 
 
-        self.grid_mass = ti.field(dtype=self.dtype,shape=res,needs_grad=True)
-        self.particle_x = ti.Vector.field(dim,dtype=self.dtype,shape=(self.n_particles,))
+        self.grid_mass = ti.field(dtype=self.dtype,shape=self.res)
+        self.particle_x = ti.Vector.field(self.dim,dtype=self.dtype,shape=self.n_particles)
         self.p_vol, self.p_rho = (self.dx*0.5)**2, 1
         self.p_mass = self.p_vol * self.p_rho
 
@@ -48,10 +53,10 @@ class PredLoss:
             self.grid_mass.from_numpy(grids)
 
     def initialize(self):
-        self.sdf_weight[None] = self.cfg.weight.sdf
-        self.density_weight[None] = self.cfg.weight.density
+        self.sdf_weight[None] = self.cfg.ENV.loss.weight.sdf
+        self.density_weight[None] = self.cfg.ENV.loss.weight.density
 
-        target_path = self.cfg.target_path
+        target_path = self.cfg.ENV.loss.target_path
         self.load_target_density(target_path)
 
     def set_weights(self, sdf, density, contact, is_soft_contact):
@@ -119,9 +124,6 @@ class PredLoss:
         self.density_loss[None] = 0
         self.sdf_loss[None] = 0
 
-        self.density_loss.grad[None] = 0
-        self.sdf_loss.grad[None] = 0
-
     @ti.kernel
     def clear_loss(self):
         self.loss[None] = 0
@@ -129,25 +131,12 @@ class PredLoss:
     @ti.complex_kernel
     def compute_loss_kernel(self):
         self.clear_losses()
-        if not self.soft_contact_loss:
-            for p in self.primitives:
-                p.min_dist[None] = 100000
-
         #clear and compute grid mss()
         self.grid_mass.fill(0)
         self.compute_grid_mass()
 
         self.compute_density_loss_kernel()
         self.compute_sdf_loss_kernel()
-
-        if len(self.primitives) > 0:
-            if self.soft_contact_loss:
-                self.compute_contact_distance_normalize()
-                self.compute_soft_contact_distance_kernel()
-            else:
-                self.compute_contact_distance_kernel()
-            self.compute_contact_loss_kernel()
-
         self.sum_up_loss_kernel()
 
     def stencil_range(self):
@@ -171,7 +160,7 @@ class PredLoss:
     def compute_grid_mass(self):
         for p in range(0, self.n_particles):
             base = (self.particle_x[p]*self.inv_dx - 0.5).cast(int)
-            fx = self.x[p]*self.inv_dx - base.cast(self.dtype)
+            fx = self.particle_x[p]*self.inv_dx - base.cast(self.dtype)
             w = [0.5*(1.5-fx)**2, 0.75 - (fx - 1)**2, 0.5*(fx - 0.5)**2]
             for offset in ti.static(ti.grouped(self.stencil_range())):
                 weight = ti.cast(1.0, self.dtype)
@@ -189,4 +178,4 @@ class PredLoss:
         self.set_particle_x(state)
         loss = self.compute_loss()
         self.reset()
-        return loss
+        return torch.tensor(loss).float()
