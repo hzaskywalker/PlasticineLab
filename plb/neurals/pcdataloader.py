@@ -39,6 +39,7 @@ class PointCloudDataset(Dataset):
     # Weighted Sampling from subset, no allow repeat?
     # Subset doesn't have weight since there is no need for more than one subsampling
     def getSubset(self,size,replace=False):
+        self.loss += 1e-5
         subset_idx = np.random.choice(len(self.state_x),p=self.loss/self.loss.sum(),size=size,replace=replace)
         sub_state_x = self.state_x[subset_idx]
         sub_state_v = self.state_v[subset_idx]
@@ -85,7 +86,19 @@ class PointCloudSubDataset(Dataset):
         original_idx = self.original_idxs[idx]
         return state, target, action, original_idx
     
+class PointCloudAEDataset(Dataset):
+    def __init__(self,npz_file):
+        pointclouds = np.load(npz_file)
+        self.x = torch.from_numpy(pointclouds['before_x']).permute(0,2,1)
+        self.n_particles = self.x.shape[2]
 
+    def __len__(self):
+        return len(self.x)
+
+    def __getitem__(self,idx):
+        if torch.is_tensor(idx):
+            idx = idx.to_list()
+        return self.x[idx]
 
 class ChopSticksDataset(PointCloudDataset):
     def __init__(self):

@@ -22,6 +22,7 @@ from plb.algorithms.TD3.run_td3 import train_td3
 from plb.optimizer.solver import solve_action
 from plb.optimizer.solver_nn import solve_nn
 from plb.optimizer.learn_latent import learn_latent
+from plb.optimizer.focal_learn_latent import learn_latent_focal
 from plb.optimizer.human import human_control
 from plb.engine.losses import Loss, StateLoss, ChamferLoss, EMDLoss
 
@@ -72,7 +73,7 @@ def main():
 
     logger = Logger(args.path)
     set_random_seed(args.seed)
-    if args.algo=='one_step':
+    if args.algo=='one_step' or args.algo=='focal':
         if args.loss == 'voxel_mae':
             loss_fn = StateLoss
         elif args.loss == 'chamfer':
@@ -84,6 +85,8 @@ def main():
 
     if args.algo == 'one_step':
         learn_latent(args, loss_fn)
+    elif args.algo == 'focal':
+        learn_latent_focal(args,loss_fn)
     else:
         taichi_env.init_taichi()
         env = make(args.env_name, nn=(args.algo=='nn'), sdf_loss=args.sdf_loss,loss_fn = loss_fn,

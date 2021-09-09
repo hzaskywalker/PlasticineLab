@@ -213,20 +213,20 @@ def _intialize_model(taichiEnv: TaichiEnv, device: torch.device)->PCNAutoEncoder
     :return: the intialized encoding model
     """
     model = PCNAutoEncoder(taichiEnv.n_particles, HIDDEN_LAYERS, LATENT_DIMS, FEAT_DMIS)
-    model.load_state_dict(torch.load("pretrain_model/network_emd_finetune.pth")['net_state_dict'])
-    torch.save(model.encoder.state_dict(),'pretrain_model/emd_expert_encoder2.pth')
+    model.load_state_dict(torch.load("pretrain_model/lyh_model.pth")['net_state_dict'])
+    torch.save(model.encoder.state_dict(),'pretrain_model/emd_expert_encoder.pth')
     model = model.to(device)
     return model
 
 def _update_loss(index,loss,dataset):
     dataset.recordLoss(index,loss)
 
-def _update_focal_scheme(epoch,dataset,size=1000):
+def _update_focal_scheme(dataset,size=1000):
     subdataset = dataset.getSubset(size)
     dataloader = DataLoader(subdataset,batch_size=mpi.num_procs())
     return dataloader
 
-def learn_latent(
+def learn_latent_focal(
         args:Namespace,
         loss_fn:Union[Type[chamfer_loss.ChamferLoss], Type[emd_loss.EMDLoss], Type[state_loss.StateLoss], Type[loss.Loss]]
     ):
@@ -242,7 +242,7 @@ def learn_latent(
     """
     # before MPI FORK: intialization & data loading
     os.makedirs(args.path, exist_ok=True)
-    epochs, batch_loss, batch_cnt, batch_size = 2, 0, 0, args.batch_size, 
+    epochs, batch_cnt, batch_size = 20, 0, args.batch_size, 
 
     # After MPI FORK
     mpi.fork(mpi.best_mpi_subprocess_num(batch_size, procPerGPU=2))
@@ -267,9 +267,10 @@ def learn_latent(
         **{"optim.lr": args.lr, "optim.type":args.optim, "init_range":0.0001}
     )
     use_grad = [False]
+    procAvgLoss = [0.0] * epochs
     for i in range(epochs):
-        total_loss = 0
-        batch_cnt = 0
+        batchCnt = 0
+        efficientBatchCnt = 0
         for stateMiniBatch, targetMiniBatch, actionMiniBatch,indexMiniBatch in dataloader:
             stateProc = list(mpi.batch_collate(
                 stateMiniBatch[0], stateMiniBatch[1], stateMiniBatch[2], stateMiniBatch[3], stateMiniBatch[4],
@@ -286,17 +287,22 @@ def learn_latent(
                     targets=targetProc,
                     localDevice = procLocalDevice
                 )
-                total_loss += currentLoss
-                batch_loss += currentLoss
+                if result_state is not None and gradient is not None:
+                    procAvgLoss[i] += currentLoss
+                    batchLoss = mpi.avg(currentLoss)
+                    efficientBatchCnt += 1
+                else:
+                    batchLoss = mpi.avg(0,base=0)
 
                 _update_network_mpi(
                     model=model,
                     optimizer=optimizer,
                     state=result_state,
                     gradient=gradient,
-                    loss=lossInBuffer
+                    loss=lossInBuffer,
+                    use_loss=False
                 )
-                mpi.sync_params(model)
+                if mpi.num_procs() > 1: mpi.sync_params(model)
             else:
                 lossInBuffer, currentLoss = solver.exec_multistep(
                     state=stateProc,
@@ -304,22 +310,26 @@ def learn_latent(
                     targets=targetProc,
                     localDevice=procLocalDevice)
                 _update_loss(indexProc,currentLoss,original_dataset)
-                batch_loss += currentLoss
-                total_loss += currentLoss
-            mpi.msg(f"Batch:{batch_cnt}, loss:{batch_loss}")
-            batch_loss = 0
-            batch_cnt += 1
-        mpi.msg(f"Epoch:{i}, average loss:{total_loss/batch_cnt}")
+                procAvgLoss[i] += currentLoss
+                batchLoss = mpi.avg(currentLoss)
+                efficientBatchCnt += 1                
+            if mpi.proc_id() == 0:
+                mpi.msg(f"Batch:{batchCnt}, loss:{batchLoss}")
+            batchCnt += 1
+        procAvgLoss[i] /= efficientBatchCnt
+        mpi.msg(f"Epoch:{i}, process-local average loss:{procAvgLoss[i]}")
         if i % 5==0:
-            dataloader = _update_focal_scheme(original_dataset)
+            dataloader = _update_focal_scheme(original_dataset,1000)
             use_grad[0] = True
-        elif i%5 == 1:
+        elif i%5 == 4:
             use_grad[0] = False
 
 
-    mpi.msg(f"Total average loss: {total_loss/batch_cnt}")
+    totalAverageLoss = sum(procAvgLoss) / len(procAvgLoss)
+    mpi.msg(f"Total process-local average loss: {totalAverageLoss}")
+    totalAverageLoss = mpi.avg(totalAverageLoss)
 
     if mpi.proc_id() == 0:
         # ONLY one proc can store the model
-        torch.save(model.state_dict(),"pretrain_model/emd_finetune_expert2.pth")
-        torch.save(model.encoder.state_dict(),"pretrain_model/emd_finetune_expert_encoder2.pth")
+        torch.save(model.state_dict(),"pretrain_model/focal_chopsticks.pth")
+        torch.save(model.encoder.state_dict(),"pretrain_model/focal_chopsticks_encoder.pth")

@@ -18,7 +18,7 @@ from ..engine.losses import state_loss, emd_loss, chamfer_loss, loss
 from ..engine.taichi_env import TaichiEnv
 from ..envs import make
 from ..neurals.autoencoder import PCNAutoEncoder
-from ..neurals.pcdataloader import ChopSticksDataset
+from ..neurals.pcdataloader import ChopSticksDataset, RopeDataset
 
 HIDDEN_LAYERS = 256
 LATENT_DIMS   = 1024
@@ -115,7 +115,6 @@ class Solver:
 def _update_network_mpi(model: torch.nn.Module, optimizer, state, gradient, loss, use_loss=True):
     if state is not None and gradient is not None:
         optimizer.zero_grad()
-        mpi.msg(gradient.norm())
         state.backward(gradient, retain_graph=True)
         if use_loss:
             loss.backward()
@@ -130,7 +129,8 @@ def _loading_dataset()->DataLoader:
 
     :return: a dataloader of ChopSticksDataset
     """
-    dataset = ChopSticksDataset()
+    #dataset = ChopSticksDataset()
+    dataset = RopeDataset()
     dataloader = DataLoader(dataset,batch_size = mpi.num_procs())
     return dataloader
 
@@ -174,8 +174,8 @@ def _intialize_model(taichiEnv: TaichiEnv, device: torch.device)->PCNAutoEncoder
     :return: the intialized encoding model
     """
     model = PCNAutoEncoder(taichiEnv.n_particles, HIDDEN_LAYERS, LATENT_DIMS, FEAT_DMIS)
-    model.load_state_dict(torch.load("pretrain_model/lyh_model.pth")['net_state_dict'])
-    torch.save(model.encoder.state_dict(),'pretrain_model/emd_expert_encoder2.pth')
+    model.load_state_dict(torch.load("pretrain_model/network_emd_finetune_rope.pth")['net_state_dict'])
+    torch.save(model.encoder.state_dict(),'pretrain_model/emd_expert_encoder_rope.pth')
     model = model.to(device)
     return model
 
@@ -201,7 +201,7 @@ def learn_latent(
     """
     # before MPI FORK: intialization & data loading
     os.makedirs(args.path, exist_ok=True)
-    epochs, batchCnt, batch_size = 2, 0, args.batch_size, 
+    epochs, batchCnt, batch_size = 10, 0, args.batch_size, 
 
     # After MPI FORK
     mpi.fork(mpi.best_mpi_subprocess_num(batch_size, procPerGPU=2))
@@ -277,5 +277,5 @@ def learn_latent(
     if mpi.proc_id() == 0:
         # ONLY one proc can store the model
         mpi.msg(f"Total global average loss:", mpi.avg(totalAverageLoss))
-        torch.save(model.state_dict(),"pretrain_model/emd_finetune_expert2.pth")
-        torch.save(model.encoder.state_dict(),"pretrain_model/emd_finetune_expert_encoder2.pth")
+        torch.save(model.state_dict(),"pretrain_model/rope_model.pth")
+        torch.save(model.encoder.state_dict(),"pretrain_model/rope_encoder.pth")
