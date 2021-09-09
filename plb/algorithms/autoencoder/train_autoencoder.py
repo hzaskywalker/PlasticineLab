@@ -54,7 +54,12 @@ if args.freeze_encoder:
         p.requires_grad = False
 
 if args.saved_model != None:
-    model.load_state_dict(torch.load('pretrain_model/{}.pth'.format(args.saved_model)))
+    if args.saved_model.endswith('encoder'):
+        model.encoder.load_state_dict(torch.load('pretrain_model/{}.pth'.format(args.saved_model)))
+    elif args.saved_model.endswith('decoder'):
+        model.decoder.load_state_dict(torch.load('pretrain_model/{}.pth'.format(args.saved_model)))
+    else:
+        model.load_state_dict(torch.load('pretrain_model/{}.pth'.format(args.saved_model)))
 model = model.to(device)
 optimizer = torch.optim.Adam(model.parameters(),lr=2e-5)
 
