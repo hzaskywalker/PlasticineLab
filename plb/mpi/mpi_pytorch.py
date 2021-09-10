@@ -1,8 +1,9 @@
 from typing import Union, Generator
+import numpy as np
 from numpy import ndarray
 import torch
 from torch import Tensor, nn
-from .mpi_tools import broadcast, mpi_avg, num_procs, proc_id, msg
+from .mpi_tools import broadcast, mpi_avg, num_procs, proc_id, msg, gather
 
 def setup_pytorch_for_mpi() -> None:
     """
@@ -64,3 +65,20 @@ def sync_params(module: nn.Module) -> None:
     for p in module.parameters():
         p_numpy = p.data.cpu().numpy()
         broadcast(p_numpy)
+
+def gather_loss_id(idx,loss):
+    if num_procs() == 1:
+        return idx,loss
+    buffer = np.array([idx,loss],dtype=np.float)
+    data = gather(buffer)
+    if data == None:
+        return None
+    else:
+        idxs = torch.tensor([int(data[i][0]) for i in range(num_procs())])
+        losses = torch.tensor([float(data[i][1]) for i in range(num_procs())])
+        return idxs, losses
+
+def sync_loss(loss_table):
+    if num_procs() == 1:
+        return
+    broadcast(loss_table)

@@ -18,7 +18,7 @@ from ..engine.losses import state_loss, emd_loss, chamfer_loss, loss
 from ..engine.taichi_env import TaichiEnv
 from ..envs import make
 from ..neurals.autoencoder import PCNAutoEncoder
-from ..neurals.pcdataloader import ChopSticksDataset
+from ..neurals.pcdataloader import ChopSticksDataset,RopeDataset
 
 mpi.setup_pytorch_for_mpi()
 
@@ -108,6 +108,7 @@ class Solver:
         if not torch.isnan(x_hat_grad).any():
             return x_hat, x_hat_grad, loss_first, loss
         else:
+            mpi.msg("NAN Detected")
             return None, None, loss_first, loss
 
     # No grad version
@@ -169,7 +170,8 @@ def _loading_dataset()->DataLoader:
 
     :return: a dataloader of ChopSticksDataset
     """
-    dataset = ChopSticksDataset()
+    #dataset = ChopSticksDataset()
+    dataset = RopeDataset()
     dataloader = DataLoader(dataset,batch_size = mpi.num_procs())
     return dataloader, dataset
 
@@ -213,15 +215,20 @@ def _intialize_model(taichiEnv: TaichiEnv, device: torch.device)->PCNAutoEncoder
     :return: the intialized encoding model
     """
     model = PCNAutoEncoder(taichiEnv.n_particles, HIDDEN_LAYERS, LATENT_DIMS, FEAT_DMIS)
-    model.load_state_dict(torch.load("pretrain_model/lyh_model.pth")['net_state_dict'])
-    torch.save(model.encoder.state_dict(),'pretrain_model/emd_expert_encoder.pth')
+    model.load_state_dict(torch.load("pretrain_model/network_emd_finetune_rope.pth")['net_state_dict'])
+    #torch.save(model.encoder.state_dict(),'pretrain_model/emd_expert_encoder.pth')
     model = model.to(device)
     return model
 
 def _update_loss(index,loss,dataset):
-    dataset.recordLoss(index,loss)
+    data = mpi.gather_loss_id(index,loss)
+    if data != None:
+        idxs, losses = data
+        dataset.recordLoss(idxs,losses)
+
 
 def _update_focal_scheme(dataset,size=1000):
+    mpi.sync_loss(dataset.loss_table)
     subdataset = dataset.getSubset(size)
     dataloader = DataLoader(subdataset,batch_size=mpi.num_procs())
     return dataloader
@@ -319,6 +326,8 @@ def learn_latent_focal(
         procAvgLoss[i] /= efficientBatchCnt
         mpi.msg(f"Epoch:{i}, process-local average loss:{procAvgLoss[i]}")
         if i % 5==0:
+            
+
             dataloader = _update_focal_scheme(original_dataset,1000)
             use_grad[0] = True
         elif i%5 == 4:
@@ -331,5 +340,5 @@ def learn_latent_focal(
 
     if mpi.proc_id() == 0:
         # ONLY one proc can store the model
-        torch.save(model.state_dict(),"pretrain_model/focal_chopsticks.pth")
-        torch.save(model.encoder.state_dict(),"pretrain_model/focal_chopsticks_encoder.pth")
+        torch.save(model.state_dict(),"pretrain_model/focal_rope.pth")
+        torch.save(model.encoder.state_dict(),"pretrain_model/focal_rope_encoder.pth")

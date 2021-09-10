@@ -14,7 +14,8 @@ class PointCloudDataset(Dataset):
         self.state_C = pointclouds['before_C']
         self.state_p = pointclouds['before_p']
         self.target_x = pointclouds['after_x']
-        self.loss = np.zeros(len(self.state_x),dtype=np.float)
+        self.loss_table = np.zeros(len(self.state_x),dtype=np.float)
+        np.random.seed(10)
         
     def __len__(self):
         return len(self.state_x)
@@ -34,13 +35,13 @@ class PointCloudDataset(Dataset):
 
     # All methods regardless of dataset or subdataset requires to set loss to here
     def recordLoss(self,idxs,losses):
-        self.loss[idxs] = losses
+        self.loss_table[idxs] = losses
 
     # Weighted Sampling from subset, no allow repeat?
     # Subset doesn't have weight since there is no need for more than one subsampling
     def getSubset(self,size,replace=False):
-        self.loss += 1e-5
-        subset_idx = np.random.choice(len(self.state_x),p=self.loss/self.loss.sum(),size=size,replace=replace)
+        self.loss_table += 1e-5
+        subset_idx = np.random.choice(len(self.state_x),p=self.loss_table/self.loss_table.sum(),size=size,replace=replace)
         sub_state_x = self.state_x[subset_idx]
         sub_state_v = self.state_v[subset_idx]
         sub_state_F = self.state_F[subset_idx]

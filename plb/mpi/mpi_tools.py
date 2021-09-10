@@ -100,6 +100,13 @@ def broadcast(x: Union[torch.Tensor, np.ndarray, Any], root: int=0) -> None:
     """
     MPI.COMM_WORLD.Bcast(x, root=root)
 
+def gather(x: Union[torch.Tensor, np.ndarray, Any], root: int=0) -> None:
+    data = MPI.COMM_WORLD.gather(x,root=root)
+    if proc_id() == root:
+        return data
+    else:
+        return None
+
 def mpi_avg(x: Union[torch.Tensor, np.ndarray, List, Any], base=1):
     """Average a scalar or vector over MPI processes."""
     dividor = max(_sum(base), 1)
