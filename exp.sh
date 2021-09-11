@@ -1,3 +1,22 @@
-nohup python -m plb.algorithms.solve --env_name Chopsticks-v1 --algo td3 --num_steps 50000 --exp_name exp_funetune --model_name emd_expert_finetune_encoder --srl --path output --seed 2021 &> 20210823_finetune.txt &
-nohup python -m plb.algorithms.solve --env_name Chopsticks-v1 --algo td3 --num_steps 50000 --exp_name exp_raw --model_name emd_expert_encoder --srl --path output --seed 2021 &> 20210823_exp.txt &
-nohup python -m plb.algorithms.solve --env_name Chopsticks-v1 --algo td3 --num_steps 50000 --exp_name raw --path output --seed 2021 &> 20210823_raw.txt &
+#/bin/bash
+models=$(ls pretrain_model)
+stamp=$(date "+%m%d%H%M%S")
+mkdir -p out
+mkdir -p out/autoencoder
+
+interpreter="python3"
+trainer="plb.algorithms.autoencoder.train_autoencoder"
+freezeEncoder="--freeze_encoder"
+
+export CUDA_VISIBLE_DEVICES=0;
+
+for modelFileName in $models
+do  modelName=${modelFileName%.pth}
+    expName="--exp ${modelName}_$stamp"
+    savedModel="--saved_model $modelName"
+
+    [[ "$modelName" == *"chopsticks"* ]] && \
+        nohup $interpreter -m $trainer $expName $savedModel $freezeEncoder &>out/autoencoder/${modelName}_$stamp.out
+    [[ "$modelName" == *"rope"* ]] && \
+        nohup $interpreter -m $trainer $expName $savedModel $freezeEncoder &>out/autoencoder/${modelName}_$stamp.out
+done
