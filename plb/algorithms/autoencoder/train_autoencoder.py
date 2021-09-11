@@ -1,16 +1,12 @@
-import sys
-import os
+import argparse
+from functools import partial
 import torch
-import numpy as np
-from ...neurals import PointCloudAEDataset
-from ...neurals import PCNAutoEncoder
-from ...engine.losses import compute_emd
 from torch.utils.data import DataLoader
 
-sys.path.append(os.path.join("ChamferDistancePytorch"))
-from chamfer3D import dist_chamfer_3D
-from functools import partial
-import argparse
+from ChamferDistancePytorch.chamfer3D import dist_chamfer_3D
+from ...engine.losses import compute_emd
+from ...neurals import PointCloudAEDataset
+from ...neurals import PCNAutoEncoder
 
 device = torch.device("cuda:0")
 
