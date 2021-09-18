@@ -120,6 +120,8 @@ def train_td3(env, path, logger, old_args):
     print("Number of steps:",args.max_timesteps)
     reward_buffer = np.zeros((5,1010))
     iou_buffer = np.zeros((5,1010))
+    if not os.path.exists('loggings'):
+        os.mkdir('loggings')
     logging_file = open('loggings/{}_output.txt'.format(old_args.exp_name),'w')
     try:
         for iter in range(5):
@@ -185,6 +187,10 @@ def train_td3(env, path, logger, old_args):
         error_msg = "iter:{},t:{}\n".format(iter,t)
         logging_file.writelines(error_msg)
     finally:
+        if not os.path.exists("ious"):
+            os.mkdir("ious")
+        if not os.path.exists("rewards"):
+            os.mkdir("rewards")
         np.save('ious/'+old_args.exp_name+'_ious.npy',iou_buffer)
         np.save('rewards/'+old_args.exp_name+'_rewards.npy',reward_buffer)
         logging_file.close()
