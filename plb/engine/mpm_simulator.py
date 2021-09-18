@@ -471,23 +471,31 @@ class MPMSimulator:
     @ti.complex_kernel
     def act(self,obs,cur,a):
         obs_tensor = torch.from_numpy(obs).requires_grad_()
+        # obs_tensor = torch.from_numpy(obs.reshape(1,1,-1)).requires_grad_() # lstm
         self.torch_obs.append(obs_tensor)
         action = self.nn(obs_tensor)
+        # action, _ = self.nn(obs_tensor) # lstm
         self.torch_actions.append(action)
         a[:] = action.detach().numpy()[:]
-        
 
     @ti.complex_kernel_grad(act)
     def act_grad(self,obs,cur,a):
         action = self.torch_actions.pop()
         # This get the gradient for a action
-        actuation_grad = self.primitives.get_step_grad(cur) # TODO: Implement Done
-        action.backward(torch.from_numpy(actuation_grad))
+        actuation_grad = self.primitives.get_step_grad(cur)
+        # actuation_grad = self.primitives.get_step_grad(cur).reshape(1,1,-1) # lstm
+
+        # grad preprocessing
+        clipped_actuation_grad = torch.from_numpy(actuation_grad)
+        # nn.utils.clip_grad_norm_(clipped_actuation_grad, max_norm=1.0, norm_type=2)
+        nn.utils.clip_grad_value_(clipped_actuation_grad, clip_value=1.0)
+
+        action.backward(clipped_actuation_grad)
         # Should be a function which calls multiple kernel function to set gradient
         state_grad = self.torch_obs.pop().grad
-        self.set_input_particles_grad(cur,state_grad.numpy()) # TODO: Implement may be tricky
-        self.set_input_primitives_grad(cur,state_grad.numpy())
-        
+        self.set_input_particles_grad(cur,state_grad.numpy().reshape(-1)) # TODO: Implement may be tricky
+        self.set_input_primitives_grad(cur,state_grad.numpy().reshape(-1))
+
     @ti.kernel
     def set_input_particles_grad(self,t: ti.i32,grad:ti.ext_arr()):
         for i in range(self.obs_num):
@@ -506,7 +514,6 @@ class MPMSimulator:
                 self.primitives[i].rotation.grad[t*self.substeps][j] += grad[base+i*7+3+j]
 
 
-        
 
     """
     @ti.complex_kernel
