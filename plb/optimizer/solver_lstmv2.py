@@ -14,37 +14,8 @@ from .optim import Optimizer
 from ..engine.taichi_env import TaichiEnv
 from ..config.utils import make_cls_config
 
-AF = {
-    "Tanh": F.tanh,
-    "ReLU": F.relu,
-    "LeakyReLU": F.leaky_relu
-}
 
-
-class MLP(nn.Module):
-    def __init__(self, input_dim, output_dim, hidden=(256, 256), activation="Tanh"):
-        super(MLP, self).__init__()
-        self.af = AF[activation]
-        dims = (input_dim,) + hidden + (output_dim,)
-        self.linears = nn.ModuleList(
-            [nn.Linear(dim, dims[i+1]) for i, dim in enumerate(dims[:-1])])
-
-    def forward(self, x):
-        for l in self.linears[:-1]:
-            x = self.af(l(x))
-        logits = self.linears[-1](x)
-        logits = F.hardtanh(logits, -1., 1.)
-        return logits
-
-    @ classmethod
-    def default_config(cls):
-        cfg = CN()
-        cfg.hidden = (256, 256)
-        cfg.af = "Tanh"
-        return cfg
-
-
-class SolverTorchNN:
+class SolverLSTMv2:
     def __init__(self, env, logger=None, data_dir='', **kwargs):
         self.cfg = make_cls_config(self, None, **kwargs)
         self.env = env
@@ -52,8 +23,7 @@ class SolverTorchNN:
         self.data_dir = data_dir
         # self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.device = 'cpu'
-        self.nn = MLP(env.observation_space.shape[0], env.action_space.shape[0],
-                      hidden=self.cfg.nn.hidden, activation=self.cfg.nn.af).double().to(self.device)
+        self.nn = nn.LSTM(env.observation_space.shape[0], env.action_space.shape[0], 2).double().to(self.device)
         self.learning_rate = self.cfg.optim.lr
         self.optimizer = torch.optim.Adam(
             self.nn.parameters(), lr=self.learning_rate)
@@ -71,14 +41,17 @@ class SolverTorchNN:
                 action = taichi_env.act(obs)  # Need to be wrapped
                 #action_np = action.data.cpu().numpy()
                 obs, reward, done, loss_info = self.env.step(action)
-
                 if self.logger is not None:
                     self.logger.step(
                         None, None, reward, None, i == self.cfg.horizon-1, loss_info)
         loss = taichi_env.loss.loss[None]
 
-        self.logger.summary_writer.writer.add_histogram(
-            'output layer grad', self.nn.linears[2].weight.grad, epoch)
+        # nn.utils.clip_grad_value_(self.nn.parameters(), clip_value=1.0)
+        # nn.utils.clip_grad_norm_(self.nn.parameters(),
+        #                          max_norm=1.0, norm_type=2)
+
+        # self.logger.summary_writer.writer.add_histogram(
+        #     'output layer grad', self.nn.linears[2].weight.grad, epoch)
 
         self.optimizer.step()
         actions_np = [t.data.cpu().numpy() for t in actions]
@@ -127,7 +100,7 @@ class SolverTorchNN:
     def default_config(cls):
         cfg = CN()
         cfg.optim = Optimizer.default_config()
-        cfg.nn = MLP.default_config()
+        # cfg.nn = MLP.default_config()
         cfg.n_iters = 100
         cfg.softness = 666.
         cfg.horizon = 50
@@ -135,25 +108,26 @@ class SolverTorchNN:
         return cfg
 
 
-def solve_torch_nnv2(env, args):
+def solve_lstmv2(env, args):
     import os
     import cv2
 
     T = env._max_episode_steps
 
-    nn_name = f"nnv2_gv-{1.0}"
+    # nn_name = f"lstmv2_gv-{100.0}"
+    nn_name = "lstmv2"
 
-    exp_name = f"{nn_name}_{args.env_name}_horizon-{T}_hidden-{args.hidden}_lr-{args.lr}_af-{args.af}"
+    exp_name = f"{nn_name}_{args.env_name}_horizon-{T}_lr-{args.lr}"
 
     path = f"data/{exp_name}/{exp_name}_s{args.seed}"
     os.makedirs(path, exist_ok=True)
     logger = Logger(path, exp_name)
     env.reset()
 
-    solver = SolverTorchNN(env, logger, data_dir=path,
+    solver = SolverLSTMv2(env, logger, data_dir=path,
                            n_iters=200,
                            softness=args.softness, horizon=T,
-                           **{"optim.lr": args.lr, "nn.hidden": args.hidden, "nn.af": args.af})
+                           **{"optim.lr": args.lr})
 
     actions = solver.solve()
     # actions = solver.inference()

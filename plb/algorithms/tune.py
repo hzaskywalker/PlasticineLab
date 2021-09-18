@@ -49,13 +49,14 @@ def tune_mlp():
                    density_loss=args.density_loss, contact_loss=args.contact_loss,
                    soft_contact_loss=args.soft_contact_loss)
 
-        for af in ['ReLU', 'Tanh']:  #
-            for hidden in [(64, 64), (400, 300)]:  # , (100, 50, 25)]:
-                for seed in [0, 10, 20]:  #
+        for af in ['LeakyReLU', 'ReLU', 'Tanh']:  # 'ReLU' , 'LeakyReLU', 'Tanh'
+            # (64, 64), (400, 300), (100, 50, 25)]:
+            for hidden in [(256, 256)]:
+                for seed in [0]:  # , 10, 20
                     args.seed = seed
                     args.hidden = hidden
                     args.af = af
-                    args.lr = 1e-3
+                    args.lr = 1e-4
 
                     set_random_seed(args.seed)
                     env.reset()
