@@ -77,9 +77,6 @@ class SolverTorchNN:
                         None, None, reward, None, i == self.cfg.horizon-1, loss_info)
         loss = taichi_env.loss.loss[None]
 
-        # nn.utils.clip_grad_value_(self.nn.parameters(), clip_value=1.0)
-        nn.utils.clip_grad_norm_(self.nn.parameters(),
-                                 max_norm=1.0, norm_type=2)
         self.logger.summary_writer.writer.add_histogram(
             'output layer grad', self.nn.linears[2].weight.grad, epoch)
 
@@ -144,7 +141,7 @@ def solve_torch_nnv2(env, args):
 
     T = env._max_episode_steps
 
-    nn_name = f"nnv2_gn-{1.0}"
+    nn_name = f"nnv2_gv-{1.0}"
 
     exp_name = f"{nn_name}_{args.env_name}_horizon-{T}_hidden-{args.hidden}_lr-{args.lr}_af-{args.af}"
 
