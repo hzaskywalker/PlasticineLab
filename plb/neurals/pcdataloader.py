@@ -14,7 +14,7 @@ class PointCloudDataset(Dataset):
         self.state_C = pointclouds['before_C']
         self.state_p = pointclouds['before_p']
         self.target_x = pointclouds['after_x']
-        self.loss_table = np.zeros(len(self.state_x),dtype=np.float)
+        
         np.random.seed(10)
         
     def __len__(self):

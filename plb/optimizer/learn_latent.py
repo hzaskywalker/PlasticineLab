@@ -24,7 +24,6 @@ HIDDEN_LAYERS = 256
 LATENT_DIMS   = 1024
 FEAT_DMIS     = 3
 
-
 mpi.setup_pytorch_for_mpi()
 
 class Solver:
@@ -97,7 +96,7 @@ class Solver:
                 env.set_grad()
             loss = env.loss.loss[None]
             return loss, env.get_state_grad()
-        x = torch.from_numpy(state[0]).double().to(localDevice)
+        x = torch.from_numpy(state[0]).double().cuda()
         x_hat = self.model(x.float())
         loss_first,assignment = compute_emd(x, x_hat, 3000)
         x_hat_after = x_hat[assignment.detach().long()]
@@ -105,7 +104,7 @@ class Solver:
         state_hat = copy.deepcopy(state)
         state_hat[0] = x_hat.cpu().double().detach().numpy()
         loss, (x_hat_grad,_) = forward(state_hat,targets,actions)
-        x_hat_grad = torch.from_numpy(x_hat_grad).clamp(-1,1).to(localDevice)
+        x_hat_grad = torch.from_numpy(x_hat_grad).clamp(-1,1).cuda()
         if not torch.isnan(x_hat_grad).any():
             return x_hat, x_hat_grad, loss_first, loss
         else:
@@ -129,8 +128,8 @@ def _loading_dataset()->DataLoader:
 
     :return: a dataloader of ChopSticksDataset
     """
-    #dataset = ChopSticksDataset()
-    dataset = RopeDataset()
+    dataset = ChopSticksDataset()
+    #dataset = RopeDataset()
     dataloader = DataLoader(dataset,batch_size = mpi.num_procs())
     return dataloader
 
@@ -174,9 +173,8 @@ def _intialize_model(taichiEnv: TaichiEnv, device: torch.device)->PCNAutoEncoder
     :return: the intialized encoding model
     """
     model = PCNAutoEncoder(taichiEnv.n_particles, HIDDEN_LAYERS, LATENT_DIMS, FEAT_DMIS)
-    model.load_state_dict(torch.load("pretrain_model/network_emd_finetune_rope.pth")['net_state_dict'])
-    torch.save(model.encoder.state_dict(),'pretrain_model/emd_expert_encoder_rope.pth')
-    model = model.to(device)
+    model.load_state_dict(torch.load("pretrain_model/srl/chopsticks/whole.pth"))
+    model = model.cuda()
     return model
 
 def squeeze_batch(state):
