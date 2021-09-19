@@ -3,7 +3,7 @@ from functools import partial
 import torch
 from torch.utils.data import DataLoader
 
-from ChamferDistancePytorch.chamfer3D import dist_chamfer_3D
+from ...chamfer_distance import ChamferDistance
 from ...engine.losses import compute_emd
 from ...neurals import PointCloudAEDataset
 from ...neurals import PCNAutoEncoder
@@ -11,7 +11,7 @@ from ...neurals import PCNAutoEncoder
 device = torch.device("cuda:0")
 
 def chamfer_loss(true_x,x_pred,chamfer_module):
-    dist1,dist2,_,_ = chamfer_module(true_x,x_pred)
+    dist1,dist2 = chamfer_module(true_x,x_pred)
     loss = (torch.sqrt(dist1).mean(1) + torch.sqrt(dist2).mean(1)) / 2
     loss = loss.mean()*10
     return loss
@@ -41,7 +41,7 @@ parser.add_argument("--dataset",type=str,default='chopsticks')
 parser.add_argument("--freeze_encoder",action='store_true',default=False)
 
 args = parser.parse_args()
-assert(args.dataset in ['chopsticks','rope'])
+assert(args.dataset in ['chopsticks','rope','torus','writer'])
 dataset = PointCloudAEDataset('data/{}.npz'.format(args.dataset))
 dataloader = DataLoader(dataset,batch_size=20)
 model = PCNAutoEncoder(dataset.n_particles,latent_dim=1024,hidden_dim=1024)
@@ -60,7 +60,7 @@ model = model.to(device)
 optimizer = torch.optim.Adam(model.parameters(),lr=2e-5)
 
 if args.loss == 'chamfer':
-    chamfer_module = dist_chamfer_3D.chamfer_3DDist()
+    chamfer_module = ChamferDistance()
     loss_fn = partial(chamfer_loss,chamfer_module=chamfer_module)
 else:
     loss_fn = partial(compute_emd,iters=100)

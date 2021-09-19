@@ -24,6 +24,7 @@ HIDDEN_LAYERS = 256
 LATENT_DIMS   = 1024
 FEAT_DMIS     = 3
 
+torch.set_num_threads(64)
 mpi.setup_pytorch_for_mpi()
 
 class Solver:
@@ -96,15 +97,16 @@ class Solver:
                 env.set_grad()
             loss = env.loss.loss[None]
             return loss, env.get_state_grad()
-        x = torch.from_numpy(state[0]).double().cuda()
+        x = torch.from_numpy(state[0]).double().cpu()
         x_hat = self.model(x.float())
         loss_first,assignment = compute_emd(x, x_hat, 3000)
+        loss_first = None
         x_hat_after = x_hat[assignment.detach().long()]
         x_hat = x_hat_after
         state_hat = copy.deepcopy(state)
         state_hat[0] = x_hat.cpu().double().detach().numpy()
         loss, (x_hat_grad,_) = forward(state_hat,targets,actions)
-        x_hat_grad = torch.from_numpy(x_hat_grad).clamp(-1,1).cuda()
+        x_hat_grad = torch.from_numpy(x_hat_grad).clamp(-1,1).cpu()
         if not torch.isnan(x_hat_grad).any():
             return x_hat, x_hat_grad, loss_first, loss
         else:
@@ -174,7 +176,7 @@ def _intialize_model(taichiEnv: TaichiEnv, device: torch.device)->PCNAutoEncoder
     """
     model = PCNAutoEncoder(taichiEnv.n_particles, HIDDEN_LAYERS, LATENT_DIMS, FEAT_DMIS)
     model.load_state_dict(torch.load("pretrain_model/srl/chopsticks/whole.pth"))
-    model = model.cuda()
+    model = model.cpu()
     return model
 
 def squeeze_batch(state):

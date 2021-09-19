@@ -167,7 +167,7 @@ class PCNEncoder(nn.Module):
         input_dim = x.dim()
         if input_dim == 2:
             x = x.view(1,x.size(0),x.size(1))
-            x = x.permute(0,2,1)
+            x = x.permute(0,2,1).contiguous()
         batch_size, _, num_points = x.size()
         x = F.relu(self.conv1(x))
         x = self.conv2(x)
