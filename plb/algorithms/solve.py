@@ -1,18 +1,28 @@
 import argparse
+import os
 
 import random
 import numpy as np
 import torch
 
+from plb.mpi import mpi_tools
+
+if os.getenv("IN_MPI") is not None:
+    cudaCore = mpi_tools.proc_id() % mpi_tools.NUM_CUDA
+    os.environ['CUDA_VISIBLE_DEVICES'] = f'{cudaCore}'
+    mpi_tools.msg(f"DEBUG GPU CORE>>>>>>> cuda:{cudaCore}")
+    
+
+from plb.engine import taichi_env
 from plb.envs import make
 from plb.algorithms.logger import Logger
-
 from plb.algorithms.sac.run_sac import train as train_sac
 from plb.algorithms.ppo.run_ppo import train_ppo
 from plb.algorithms.TD3.run_td3 import train_td3
 from plb.optimizer.solver import solve_action
 from plb.optimizer.solver_nn import solve_nn
 from plb.optimizer.learn_latent import learn_latent
+from plb.optimizer.focal_learn_latent import learn_latent_focal
 from plb.optimizer.human import human_control
 from plb.engine.losses import Loss, StateLoss, ChamferLoss, EMDLoss
 
@@ -63,7 +73,7 @@ def main():
 
     logger = Logger(args.path)
     set_random_seed(args.seed)
-    if args.algo=='one_step':
+    if args.algo=='one_step' or args.algo=='focal':
         if args.loss == 'voxel_mae':
             loss_fn = StateLoss
         elif args.loss == 'chamfer':
@@ -72,27 +82,31 @@ def main():
             loss_fn = EMDLoss
     else:
         loss_fn = Loss
-    env = make(args.env_name, nn=(args.algo=='nn'), sdf_loss=args.sdf_loss,loss_fn = loss_fn,
-                            density_loss=args.density_loss, contact_loss=args.contact_loss,full_obs = args.srl,
-                            soft_contact_loss=args.soft_contact_loss)
-    env.seed(args.seed)
-    logger = logger
-    if args.algo == 'sac':
-        train_sac(env, args.path, logger, args)
-    elif args.algo == 'action':
-        solve_action(env, args.path, logger, args)
-    elif args.algo == 'ppo':
-        train_ppo(env, args.path, logger, args)
-    elif args.algo == 'td3':
-        train_td3(env, args.path, logger, args)
-    elif args.algo == 'nn':
-        solve_nn(env, args.path, logger, args)
-    elif args.algo == 'one_step':
-        learn_latent(env, args.path, args)
-    elif args.algo == 'human':
-        human_control(env,args.path,logger,args)
+
+    if args.algo == 'one_step':
+        learn_latent(args, loss_fn)
+    elif args.algo == 'focal':
+        learn_latent_focal(args,loss_fn)
     else:
-        raise NotImplementedError
+        taichi_env.init_taichi()
+        env = make(args.env_name, nn=(args.algo=='nn'), sdf_loss=args.sdf_loss,loss_fn = loss_fn,
+                                density_loss=args.density_loss, contact_loss=args.contact_loss,full_obs = args.srl,
+                                soft_contact_loss=args.soft_contact_loss)
+        env.seed(args.seed)
+        if args.algo == 'sac':
+            train_sac(env, args.path, logger, args)
+        elif args.algo == 'action':
+            solve_action(env, args.path, logger, args)
+        elif args.algo == 'ppo':
+            train_ppo(env, args.path, logger, args)
+        elif args.algo == 'td3':
+            train_td3(env, args.path, logger, args)
+        elif args.algo == 'nn':
+            solve_nn(env, args.path, logger, args)
+        elif args.algo == 'human':
+            human_control(env,args.path,logger,args)
+        else:
+            raise NotImplementedError
 
 if __name__ == '__main__':
     main()

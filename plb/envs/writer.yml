@@ -1,6 +1,6 @@
 SIMULATOR:
   E: 5000.
-  n_particles: 10000
+  n_particles: 8192
   yield_stress: 50.
   ground_friction: 100.
 SHAPES:
@@ -8,6 +8,7 @@ SHAPES:
     width: (0.3, 0.1, 0.3)
     init_pos: (0.5, 0.05, 0.5)
     color: ((((200 << 8) + 200) << 8) + 0)
+    n_particles: 8192
 PRIMITIVES:
   - shape: Capsule
     h: 0.06

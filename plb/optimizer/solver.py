@@ -1,6 +1,7 @@
 import taichi as ti
 import numpy as np
 import copy
+import os
 from yacs.config import CfgNode as CN
 
 from .optim import Optimizer, Adam, Momentum
@@ -20,7 +21,7 @@ class Solver:
         self.env = env
         self.logger = logger
 
-    def solve(self, init_actions=None, callbacks=()):
+    def solve(self, exp_name,init_actions=None, callbacks=()):
         env = self.env
         if init_actions is None:
             init_actions = self.init_actions(env, self.cfg)
@@ -41,7 +42,6 @@ class Solver:
                 for i in range(len(action)):
                     env.step(action[i])
                     self.total_steps += 1
-                    x = env.get_x()
                     env.compute_loss(taichi_loss=True)
             loss = env.loss.loss[None]
             return loss, env.primitives.get_grad(len(action))
@@ -51,14 +51,17 @@ class Solver:
                 self.logger.reset()
 
             env.set_state(sim_state, self.cfg.softness,False)
+            if self.pc_cnt != 0:
+                self.pc_cnt += 1 
             for i in range(len(action)):
-                env.save_current_state('before/{}'.format(self.pc_cnt))
+                env.save_current_state(f'raw_data/{exp_name}/state/{self.pc_cnt}')
                 env.step(action[i])
                 action_buffer.append(action[i])
                 self.total_steps += 1
                 self.pc_cnt += 1
                 env.compute_loss(taichi_loss=True)
-                env.save_current_state('after/{}'.format(self.pc_cnt))
+            action_buffer.append(np.zeros_like(action[i])) # For alignment
+            env.save_current_state(f'raw_data/{exp_name}/state/{self.pc_cnt}')
 
         best_action = None
         best_loss = 1e10
@@ -77,7 +80,7 @@ class Solver:
             print("Iteration: ",iter," Loss:",loss)
 
         env.set_state(**env_state)
-        np.save('../../action.npy',action_buffer)
+        np.save(f'raw_data/{exp_name}/action.npy',action_buffer)
         return best_action
 
 
@@ -102,10 +105,16 @@ class Solver:
         cfg.init_sampler = 'uniform'
         return cfg
 
+def _make_necessary_dirs(path,exp_name):
+    os.makedirs(path, exist_ok=True)
+    os.makedirs('raw_data',exist_ok=True)
+    os.makedirs(f'raw_data/{exp_name}',exist_ok=True)
+    os.makedirs(f'raw_data/{exp_name}/state',exist_ok=True)
+
 
 def solve_action(env, path, logger, args):
-    import os, cv2
-    os.makedirs(path, exist_ok=True)
+    _make_necessary_dirs(path,args.exp_name)
+    
     env.reset()
     taichi_env: TaichiEnv = env.unwrapped.taichi_env
     T = env._max_episode_steps
@@ -113,9 +122,5 @@ def solve_action(env, path, logger, args):
                     n_iters=(args.num_steps + T-1)//T, softness=args.softness, horizon=T,
                     **{"optim.lr": args.lr, "optim.type": args.optim, "init_range": 0.0001})
 
-    action = solver.solve()
-
-    for idx, act in enumerate(action):
-        env.step(act)
-        img = env.render(mode='rgb_array')
-        cv2.imwrite(f"{path}/{idx:04d}.png", img[..., ::-1])
+    action = solver.solve(exp_name=args.exp_name)
+    print("Done")

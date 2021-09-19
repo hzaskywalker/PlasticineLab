@@ -347,9 +347,12 @@ class MPMSimulator:
         self.setframe(f, *state[:4])
         # Not used in real case.
         #print("Reached Here!")
+        cur = 0
         for s, i in zip(state[4:], self.primitives):
             #print("state:",s)
-            i.set_state(f, s)
+            state_dim = i.__class__.state_dim
+            i.set_state(f, s[cur:cur+state_dim])
+            cur += state_dim
 
     @ti.kernel
     def reset_kernel(self, x:ti.ext_arr()):

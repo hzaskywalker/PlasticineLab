@@ -5,7 +5,8 @@ import taichi as ti
 from .losses import Loss ,StateLoss, ChamferLoss, EMDLoss
 
 # TODO: run on GPU, fast_math will cause error on float64's sqrt; removing it cuases compile error..
-ti.init(arch=ti.gpu, debug=False, fast_math=True)
+def init_taichi():
+    ti.init(arch=ti.gpu, debug=False, fast_math=True)
 
 @ti.data_oriented
 class TaichiEnv:
@@ -104,22 +105,11 @@ class TaichiEnv:
         }
 
     def get_current_state(self):
-        return {'state':self.simulator.get_current_state(),
-                'softness':self.primitives.get_softness(),
-                'is_copy':self._is_copy}
+        return self.simulator.get_current_state()
 
     def save_current_state(self,filename):
         states = self.get_current_state()
-        np.savez(filename+'_state.npz',*states['state'])
-        np.savez(filename+'_softness.npz',softness = states['softness'])
-        np.savez(filename+'_is_copy.npz',is_copy = states['is_copy'])
-
-    def load_state(self,filename):
-        state = np.load(filename+'_state.npz')
-        state = [state[key] for key in state.files]
-        softness = np.load(filename+'_softness.npz')['softness']
-        is_copy = np.load(filename+'_is_copy.npz')['is_copy']
-        return {'state':state,'softness':softness,'is_copy':is_copy}
+        np.savez(filename+'.npz',*states)
 
     def set_state(self, state, softness, is_copy):
         self.simulator.cur = 0
