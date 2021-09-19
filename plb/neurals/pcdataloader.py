@@ -115,9 +115,9 @@ class TableDataset(PointCloudDataset):
     def __init__(self):
         super(TableDataset,self).__init__('data/table.npz')
 
-class ChopsticksCFMDataset(Dataset):
-    def __init__(self):
-        pointclouds = np.load('data/chopsticks.npz')
+class CFMDataset(Dataset):
+    def __init__(self, env:str):
+        pointclouds = np.load(f'data/{env}.npz')
         self.actions = torch.from_numpy(pointclouds['action']).float()
         self.state_x = torch.from_numpy(pointclouds['before_x']).float().permute(0,2,1)
         self.target_x = torch.from_numpy(pointclouds['after_x']).float().permute(0,1,3,2)
