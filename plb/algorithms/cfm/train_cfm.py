@@ -3,8 +3,6 @@ import os
 from typing import Tuple, Union
 
 import torch
-from torch.utils import data
-from torch.utils.data import dataset
 from torch.utils.data.dataloader import DataLoader
 
 from ...neurals.autoencoder import PCNEncoder
@@ -35,8 +33,8 @@ def _preparation(datasetName: str, batchSize: int, complexity: int) -> Tuple[Dat
     dataset = CFMDataset(datasetName) 
     dataloader = DataLoader(dataset, batch_size = batchSize)
 
-    print(f"{datasetName.n_particles} particles loaded from dataset:data/{datasetName}.npz")
-    nActions = datasetName.n_actions
+    print(f"{dataset.n_particles} particles loaded from dataset:data/{datasetName}.npz")
+    nActions = dataset.n_actions
 
     encoder = PCNEncoder(
         state_dim  = STATE_DIM,
@@ -65,8 +63,6 @@ def train(encoder:PCNEncoder,
         action = action.to(device)
         optimizer.zero_grad()
         latent = encoder(state)
-        print(latent.shape)
-        print(action.shape)
         latent_pred = forward_model(latent, action)
         latent_next = encoder(target)
         loss = loss_fn(latent, latent_pred, latent_next)
@@ -90,7 +86,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     dataloader, encoder, forward_model = _preparation(args.dataset, args.batch_size, args.complexity)
-    loss_fn = OriginInfoNCELoss if "origininfonce" in args.loss.lower() else InfoNCELoss
+    loss_fn = OriginInfoNCELoss() if "origininfonce" in args.loss.lower() else InfoNCELoss()
 
     params = list(encoder.parameters()) + list(forward_model.parameters())
     optimizer = torch.optim.Adam(params, lr=0.0001)

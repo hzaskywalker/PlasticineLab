@@ -122,8 +122,8 @@ class CFMDataset(Dataset):
         self.actions = torch.from_numpy(pointclouds['action']).float()
         self.state_x = torch.from_numpy(pointclouds['before_x']).float().permute(0,2,1)
         self.target_x = torch.from_numpy(pointclouds['after_x']).float().permute(0,1,3,2)
-        self.n_particles = self.state_x.shape[1]
-        self.n_actions = self.actions.shape[1]
+        self.n_particles = self.state_x.shape[-1]
+        self.n_actions = self.actions.shape[-1]
 
     def __len__(self):
         return len(self.state_x)
