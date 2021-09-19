@@ -5,6 +5,7 @@ import gym
 from plb import envs
 import argparse
 import os
+import copy
 
 from plb.algorithms.TD3 import utils
 from plb.algorithms.TD3 import TD3
@@ -62,12 +63,13 @@ def train_td3(env, path, logger, old_args):
     parser.add_argument("--policy_freq", default=2, type=int)       # Frequency of delayed policy updates
     parser.add_argument("--save_model", action="store_true")        # Save model and optimizer parameters
     parser.add_argument("--load_model", default="")                 # Model load file name, "" doesn't load, "default" uses file_name
-
-    max_timesteps = old_args.num_steps
+    parser.add_argument("--model_name", default="")
 
     args, _ = parser.parse_known_args()
-    args.max_timesteps = max_timesteps
+    args.max_timesteps = old_args.num_steps
 
+    if len(args.model_name) == 0:
+        args.model_name = old_args.model_name
     args.discount = float(args.gamma)
 
     log_path = path
@@ -75,6 +77,7 @@ def train_td3(env, path, logger, old_args):
 
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
+    n_particles = env.n_particles
     max_action = float(env.action_space.high[0])
 
     kwargs = {
@@ -83,6 +86,10 @@ def train_td3(env, path, logger, old_args):
         "max_action": max_action,
         "discount": args.discount,
         "tau": args.tau,
+        "n_particles":n_particles,
+        "n_layers":5,
+        "enable_latent":old_args.srl,
+        "model_name":old_args.model_name
     }
 
     # Initialize policy
@@ -92,13 +99,16 @@ def train_td3(env, path, logger, old_args):
         kwargs["noise_clip"] = args.noise_clip * max_action
         kwargs["policy_freq"] = args.policy_freq
         policy = TD3.TD3(**kwargs)
+        copied_policy = copy.deepcopy(policy)
     else:
         raise NotImplementedError
 
+    state_dim = policy.state_dim
     replay_buffer = utils.ReplayBuffer(state_dim, action_dim)
 
     state, done = env.reset(), False
     episode_reward = 0
+    episode_iou = 0
     episode_timesteps = 0
     episode_num = 0
 
@@ -108,56 +118,81 @@ def train_td3(env, path, logger, old_args):
     ep_last_iou = 0
 
     logger.reset()
-    for t in range(int(args.max_timesteps)):
+    print("Number of steps:",args.max_timesteps)
+    reward_buffer = np.zeros((5,1010))
+    iou_buffer = np.zeros((5,1010))
+    if not os.path.exists('loggings'):
+        os.mkdir('loggings')
+    logging_file = open('loggings/{}_output.txt'.format(old_args.exp_name),'w')
+    try:
+        for iter in range(5):
+            # Use Copied Policy for parameter reset
+            policy = copy.deepcopy(copied_policy)
+            episode_num = 0
+            for t in range(int(args.max_timesteps)):
+                episode_timesteps += 1
+                # Select action randomly or according to policy
+                if t < args.start_timesteps:
+                    action = env.action_space.sample()
+                else:
+                    action = (
+                        policy.select_action(np.array(state))
+                        + np.random.normal(0, max_action * args.expl_noise, size=action_dim)
+                    ).clip(-max_action, max_action)
 
-        episode_timesteps += 1
+                # Perform action
+                next_state, reward, done, info = env.step(action)
+                done_bool = float(done) if episode_timesteps < env._max_episode_steps else 0
 
-        # Select action randomly or according to policy
-        if t < args.start_timesteps:
-            action = env.action_space.sample()
-        else:
-            action = (
-                policy.select_action(np.array(state))
-                + np.random.normal(0, max_action * args.expl_noise, size=action_dim)
-            ).clip(-max_action, max_action)
+                ep_reward += reward
+                ep_iou += info['iou']
+                ep_last_iou = info['iou']
 
-        # Perform action
-        next_state, reward, done, info = env.step(action)
-        done_bool = float(done) if episode_timesteps < env._max_episode_steps else 0
+                # Store data in replay buffer
+                replay_buffer.add(policy.adapt_state(state), action, policy.adapt_state(next_state), reward, done_bool)
+                logger.step(state, action, reward, next_state, done, info)
+                state = next_state
+                episode_reward += reward
+                if info['iou'] > episode_iou:
+                    episode_iou = info['iou']
 
-        ep_reward += reward
-        ep_iou += info['iou']
-        ep_last_iou = info['iou']
+                # Train agent after collecting sufficient data
+                if t >= args.start_timesteps:
+                    policy.train(replay_buffer, args.batch_size)
 
-        # Store data in replay buffer
-        replay_buffer.add(state, action, next_state, reward, done_bool)
-        logger.step(state, action, reward, next_state, done, info)
+                if done:
+                    # +1 to account for 0 indexing. +0 on ep_timesteps since it will increment +1 even if done=True
+                    logger.reset()
 
-        state = next_state
-        episode_reward += reward
+                    ep_reward=0
+                    ep_iou = 0
+                    # Reset environment
+                    state, done = env.reset(), False
+                    reward_buffer[iter,episode_num] = episode_reward
+                    iou_buffer[iter,episode_num] = episode_iou
+                    episode_reward = 0
+                    episode_iou = 0
+                    episode_timesteps = 0
+                    episode_num += 1
 
-        # Train agent after collecting sufficient data
-        if t >= args.start_timesteps:
-            policy.train(replay_buffer, args.batch_size)
-
-        if done:
-            # +1 to account for 0 indexing. +0 on ep_timesteps since it will increment +1 even if done=True
-            logger.reset()
-
-            ep_reward=0
-            ep_iou = 0
-            # Reset environment
-            state, done = env.reset(), False
-            episode_reward = 0
-            episode_timesteps = 0
-            episode_num += 1
-
-            # Evaluate episode
-            if episode_num % args.eval_freq == 0:
-                #evaluations.append(
-                r1, r2, iou, _last_iou = eval_policy(policy, env, args.seed)
-                output = f"Test Total T: {t + 1} Episode Num: {episode_num + 1} Episode T: {episode_timesteps} Reward: {r1:.3f}" + f" reward: {r2},  iou: {iou},  last_iou: {_last_iou}"
-                print(output)
-
-                #np.save(f"./results/{file_name}", evaluations)
-                policy.save(log_path)
+                    # Evaluate episode
+                    if episode_num % args.eval_freq == 0:
+                        #evaluations.append(
+                        r1, r2, iou, _last_iou = eval_policy(policy, env, args.seed)
+                        output = f"Test Total T: {t + 1} Episode Num: {episode_num + 1} Episode T: {episode_timesteps} Reward: {r1:.3f}" + f" reward: {r2},  iou: {iou},  last_iou: {_last_iou}"
+                        print(output)
+                        logging_file.writelines(output+'\n')
+                        #np.save(f"./results/{file_name}", evaluations)
+                        policy.save(log_path)
+    except:
+        error_msg = "iter:{},t:{}\n".format(iter,t)
+        logging_file.writelines(error_msg)
+    finally:
+        if not os.path.exists("ious"):
+            os.mkdir("ious")
+        if not os.path.exists("rewards"):
+            os.mkdir("rewards")
+        np.save('ious/'+old_args.exp_name+'_ious.npy',iou_buffer)
+        np.save('rewards/'+old_args.exp_name+'_rewards.npy',reward_buffer)
+        logging_file.close()
+ 

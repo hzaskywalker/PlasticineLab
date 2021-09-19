@@ -1,14 +1,17 @@
+from token import ENDMARKER
 import numpy as np
 import cv2
 import taichi as ti
+from .losses import Loss ,StateLoss, ChamferLoss, EMDLoss
 
 # TODO: run on GPU, fast_math will cause error on float64's sqrt; removing it cuases compile error..
-ti.init(arch=ti.gpu, debug=False, fast_math=True)
+def init_taichi():
+    ti.init(arch=ti.gpu, debug=False, fast_math=True)
 
 
 @ti.data_oriented
 class TaichiEnv:
-    def __init__(self, cfg, nn=False, loss=True):
+    def __init__(self, cfg, loss_fn=Loss,nn=False, loss=True):
         """
         A taichi env builds scene according the configuration and the set of manipulators
         """
@@ -18,7 +21,6 @@ class TaichiEnv:
         from .primitive import Primitives
         from .renderer import Renderer
         from .shapes import Shapes
-        from .losses import Loss
         from .nn.mlp import MLP
 
         self.cfg = cfg.ENV
@@ -28,6 +30,7 @@ class TaichiEnv:
 
         cfg.SIMULATOR.defrost()
         self.n_particles = cfg.SIMULATOR.n_particles = len(self.init_particles)
+        print("Number of particles: ",self.n_particles)
 
         self.simulator = MPMSimulator(cfg.SIMULATOR, self.primitives)
         self.renderer = Renderer(cfg.RENDERER, self.primitives)
@@ -36,7 +39,7 @@ class TaichiEnv:
             self.nn = MLP(self.simulator, self.primitives, (256, 256))
 
         if loss:
-            self.loss = Loss(cfg.ENV.loss, self.simulator)
+            self.loss = loss_fn(cfg.ENV.loss, self.simulator)
         else:
             self.loss = None
         self._is_copy = True
@@ -51,8 +54,7 @@ class TaichiEnv:
         self.renderer.initialize()
         if self.loss:
             self.loss.initialize()
-            self.renderer.set_target_density(
-                self.loss.target_density.to_numpy()/self.simulator.p_mass)
+            #self.renderer.set_target_density(self.loss.target_density.to_numpy()/self.simulator.p_mass)
 
         # call set_state instead of reset..
         self.simulator.reset(self.init_particles)
@@ -68,8 +70,10 @@ class TaichiEnv:
         img = np.uint8(img.clip(0, 1) * 255)
 
         if mode == 'human':
-            cv2.imshow('x', img[..., ::-1])
-            cv2.waitKey(1)
+            image = img[..., ::-1]
+            image = cv2.resize(image,(512,512))
+            cv2.imshow('x', image)
+            #cv2.waitKey(0)
         elif mode == 'plt':
             import matplotlib.pyplot as plt
             plt.imshow(img)
@@ -97,13 +101,16 @@ class TaichiEnv:
             action = np.array(action)
         self.simulator.step(is_copy=self._is_copy, action=action)
 
-    def compute_loss(self):
+    def compute_loss(self,copy_grad=True,decay=1,taichi_loss=False):
         assert self.loss is not None
         if self._is_copy:
             self.loss.clear()
             return self.loss.compute_loss(0)
         else:
-            return self.loss.compute_loss(self.simulator.cur)
+            if taichi_loss==False:
+                return self.loss.compute_loss(self.simulator.cur,copy_grad,decay=decay)
+            else:
+                return self.loss.compute_loss(self.simulator.cur)
 
     def get_state(self):
         assert self.simulator.cur == 0
@@ -112,6 +119,13 @@ class TaichiEnv:
             'softness': self.primitives.get_softness(),
             'is_copy': self._is_copy
         }
+
+    def get_current_state(self):
+        return self.simulator.get_current_state()
+
+    def save_current_state(self,filename):
+        states = self.get_current_state()
+        np.savez(filename+'.npz',*states)
 
     def set_state(self, state, softness, is_copy):
         self.simulator.cur = 0
@@ -130,3 +144,20 @@ class TaichiEnv:
         action = np.zeros(self.simulator.primitives.action_dims[-1])
         self.simulator.act(obs,self.simulator.cur,action)
         return action
+
+    def set_target(self,target):
+        self.loss.set_target(target)
+
+    def get_state_grad(self):
+        x_grad,v_grad,_, _ = self.simulator.get_state_grad(0)
+        return x_grad, v_grad
+
+    def get_x(self):
+        return self.simulator.get_x(self.simulator.cur)
+
+    def get_v(self):
+        return self.simulator.get_v(self.simulator.cur)
+
+    def set_grad(self):
+        assert(isinstance(self.loss,ChamferLoss) or isinstance(self.loss,EMDLoss))
+        self.loss.set_grad()

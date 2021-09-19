@@ -86,6 +86,7 @@ class MLP:
                         self.primitives[i].rotation[t*self.substeps][j]
         return [input_particles, input_primitives]
 
+    # Will directly put the action into the action buffer
     def output_kernels(self):
         h = self.hidden[-1]
         @ti.kernel

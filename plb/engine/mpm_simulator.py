@@ -9,7 +9,7 @@ class MPMSimulator:
     def __init__(self, cfg, primitives=()):
         dim = self.dim = cfg.dim
         assert cfg.dtype == 'float64'
-        dtype = self.dtype = ti.f64 if cfg.dtype == 'float64' else ti.f32
+        dtype = self.dtype = ti.f64 #if cfg.dtype == 'float64' else ti.f64
         self._yield_stress = cfg.yield_stress
         self.ground_friction = cfg.ground_friction
         self.default_gravity = cfg.gravity
@@ -339,7 +339,14 @@ class MPMSimulator:
                     C[i, j, k] = self.C[f, i][j, k]
 
     @ti.kernel
-    def setframe(self, f: ti.i32, x: ti.ext_arr(), v: ti.ext_arr(), F: ti.ext_arr(), C: ti.ext_arr()):
+    def readframe_grad(self,f:ti.i32, x_grad: ti.ext_arr(), v_grad: ti.ext_arr()):
+        for i in range(self.n_particles):
+            for j in ti.static(range(self.dim)):
+                x_grad[i,j] = self.x.grad[f,i][j]
+                v_grad[i,j] = self.v.grad[f,i][j]
+
+    @ti.kernel
+    def setframe(self, f:ti.i32, x: ti.ext_arr(), v: ti.ext_arr(), F: ti.ext_arr(), C: ti.ext_arr()):
         for i in range(self.n_particles):
             for j in ti.static(range(self.dim)):
                 self.x[f, i][j] = x[i, j]
@@ -371,10 +378,30 @@ class MPMSimulator:
             out.append(i.get_state(f))
         return out
 
+    def get_current_state(self):
+        return self.get_state(self.cur)
+
+    def get_state_grad(self,f):
+        x_grad = np.zeros((self.n_particles,self.dim), dtype = np.float64)
+        v_grad = np.zeros((self.n_particles,self.dim), dtype = np.float64)
+        primitive_pos_grad = np.zeros((self.n_primitive,self.dim), dtype = np.float64)
+        primitive_rot_grad = np.zeros((self.n_primitive,self.dim+1), dtype = np.float64)
+        self.readframe_grad(f,x_grad,v_grad)
+        for i,primitive in enumerate(self.primitives):
+            primitive_pos_grad[i] = primitive.get_pos_grad()
+            primitive_rot_grad[i] = primitive.get_rot_grad()
+        return x_grad, v_grad, primitive_pos_grad, primitive_rot_grad
+
     def set_state(self, f, state):
         self.setframe(f, *state[:4])
+        # Not used in real case.
+        #print("Reached Here!")
+        cur = 0
         for s, i in zip(state[4:], self.primitives):
-            i.set_state(f, s)
+            #print("state:",s)
+            state_dim = i.__class__.state_dim
+            i.set_state(f, s[cur:cur+state_dim])
+            cur += state_dim
 
     @ti.kernel
     def reset_kernel(self, x: ti.ext_arr()):
@@ -399,20 +426,35 @@ class MPMSimulator:
                 x[i, j] = self.x[f, i][j]
 
     @ti.complex_kernel
-    def no_grad_get_x_kernel(self, f: ti.i32, x: ti.ext_arr()):
-        self.get_x_kernel(f, x)
+    def get_x_tape(self,f:ti.i32, x: ti.ext_arr()):
+        self.get_x_kernel(f,x)
 
-    @ti.complex_kernel_grad(no_grad_get_x_kernel)
-    def no_grad_get_x_kernel_grad(self, f: ti.i32, x: ti.ext_arr()):
+    @ti.complex_kernel_grad(get_x_tape)
+    def get_x_tape_grad(self,f: ti.i32,x:ti.ext_arr()):
         return
 
-    def get_x(self, f, needs_grad=True):
+    def get_x(self, f):
         x = np.zeros((self.n_particles, self.dim), dtype=np.float64)
-        if needs_grad:
-            self.get_x_kernel(f, x)
-        else:
-            self.no_grad_get_x_kernel(f, x)
+        self.get_x_tape(f, x)
         return x
+
+    @ti.kernel
+    def get_x_grad_kernel(self,f:ti.i32, x_grad: ti.ext_arr()):
+        for i in range(self.n_particles):
+            for j in ti.static(range(self.dim)):
+                x_grad[i,j] = self.x.grad[f,i][j]
+
+    @ti.complex_kernel
+    def get_x_grad_tape(self,f:ti.i32,x_grad:ti.ext_arr()):
+        self.get_x_grad_kernel(f,x_grad)
+
+    @ti.complex_kernel_grad(get_x_grad_tape)
+    def get_x_grad_tape(self,f:ti.i32, x_grad:ti.ext_arr()):
+        return
+
+    def get_x_grad(self,f):
+        x_grad = np.zeros((self.n_particles,self.dim), dtype=np.float64)
+        self.get_x_grad_tape(f,x_grad)
 
     @ti.kernel
     def get_v_kernel(self, f: ti.i32, v: ti.ext_arr()):
@@ -421,20 +463,34 @@ class MPMSimulator:
                 v[i, j] = self.v[f, i][j]
 
     @ti.complex_kernel
-    def no_grad_get_v_kernel(self, f: ti.i32, v: ti.ext_arr()):
-        self.get_v_kernel(f, v)
+    def get_v_tape(self,f:ti.i32,v:ti.ext_arr()):
+        self.get_v_kernel(f,v)
 
-    @ti.complex_kernel_grad(no_grad_get_v_kernel)
-    def no_grad_get_v_kernel_grad(self, f: ti.i32, v: ti.ext_arr()):
+    @ti.complex_kernel_grad(get_v_tape)
+    def get_v_tape_grad(self,f:ti.i32,v:ti.ext_arr()):
         return
 
-    def get_v(self, f, needs_grad=True):
+    def get_v(self, f):
         v = np.zeros((self.n_particles, self.dim), dtype=np.float64)
-        if needs_grad:
-            self.get_v_kernel(f, v)
-        else:
-            self.no_grad_get_v_kernel(f, v)
+        self.get_v_tape(f, v)
         return v
+
+    @ti.kernel
+    def set_x_grad_kernel(self,f:ti.i32,x_grad: ti.ext_arr()):
+        for i in range(self.n_particles):
+            for j in ti.static(range(self.dim)):
+                self.x.grad[f,i][j] = x_grad[i,j]
+
+    @ti.complex_kernel
+    def set_x_grad_tape(self,f:ti.i32,x_grad:ti.ext_arr()):
+        self.set_x_grad_kernel(f,x_grad)
+
+    @ti.complex_kernel_grad(set_x_grad_tape)
+    def set_x_grad_tape_grad(self,f:ti.i32,x_grad:ti.ext_arr()):
+        return
+
+    def set_x_grad(self,f,x_grad):
+        self.set_x_grad_tape(f,x_grad)
 
     def step(self, is_copy, action=None):
         start = 0 if is_copy else self.cur
@@ -514,6 +570,12 @@ class MPMSimulator:
                 self.primitives[i].rotation.grad[t*self.substeps][j] += grad[base+i*7+3+j]
 
 
+    def get_v_nokernel(self):
+        v = np.zeros((self.n_particles,self.dim),dype=np.float64)
+        for i in range(self.n_particles):
+            for j in range(self.dim):
+                v[i,j] = self.v[1,i][j]
+        return v
 
     """
     @ti.complex_kernel

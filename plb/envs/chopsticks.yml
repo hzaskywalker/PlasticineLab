@@ -1,5 +1,5 @@
 SIMULATOR:
-  n_particles: 10000
+  n_particles: 8192
   yield_stress: 200.
   ground_friction: 0.
   gravity: (0, -5, 0)
@@ -8,6 +8,7 @@ SHAPES:
     width: (0.04, 0.04, 0.6)
     init_pos: (0.5, 0.02, 0.5)
     color: 100
+    n_particles: 8192
 PRIMITIVES:
   - shape: Chopsticks
     h: 0.2

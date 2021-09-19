@@ -11,8 +11,8 @@ def out_dir(n):
     if ti.abs(n[1]) < 1 - 1e-3:
         u = n.cross(ti.Vector([0.0, 1.0, 0.0])).normalized()
     v = n.cross(u)
-    phi = 2 * math.pi * ti.random(ti.f32)
-    r = ti.random(ti.f32)
+    phi = 2 * math.pi * ti.random(ti.f64)
+    r = ti.random(ti.f64)
     ay = ti.sqrt(r)
     ax = ti.sqrt(1 - r)
     return ax * (ti.cos(phi) * u + ti.sin(phi) * v) + ay * n

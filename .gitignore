@@ -1,33 +1,48 @@
+# IDE configuration
+*.code-workspace*
+*.idea
+*.vscode*
+# system configuration
+*.DS_Store*
+*imgui.ini*
+# video & image
 *.jpg
 *.png
-data
 *.avi
-*feh_*
-*.pkl
-*__pycache__*
+# nohup output
+*.out
+# results
+**/rewards/**/*.np[zy]
+**/ious/**/*.np[zy]
+loggings/
+output/
+pretrain_model/
+# temporary
 *tmp*
-*.idea
-*.DS_Store*
-*egg-info*
-*.ply*
-*linecount*
+output_actor
+after/
+before/
+runs/
+# python & pytorch
+*__pycache__*
 *pytest_cache*
-*.vscode*
+data
+*.pkl
+*.ply*
+*.pth
+action.npy
+debug_rewards.npy
+*feh_*
+*egg-info*
+*linecount*
 *dsprites-dataset*
-
-*.code-workspace*
-
+action_sin/
+tb/
+# compiler output
 *.so*
 *build
-
-*imgui.ini*
-
 #third_party
 *logs*
-
 rl2seq
-
 *plot_table*
-*tools*
-
 *HW1*

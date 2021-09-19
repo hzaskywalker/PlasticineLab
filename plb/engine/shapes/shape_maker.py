@@ -71,6 +71,24 @@ class Shapes:
         p = p * u * radius + np.array(init_pos)[:self.dim]
         self.add_object(p, color, init_rot=init_rot)
 
+    # r1 represent the large circle's radius, r2 is inner radius
+    def add_torus(self,r1,r2,height,init_pos,n_particles, color=None,init_rot=None):
+        if n_particles is None:
+            if self.dim == 3:
+                volume = (r1**2*np.pi - r2**2*np.pi)*height
+            else:
+                volume = r1**2*np.pi - r2**2*np.pi
+            n_particles = self.get_n_particles(volume)
+        # Generate random direction
+        p = np.random.normal(size=(n_particles,2))
+        p /= np.linalg.norm(p,axis=1,keepdims=True)
+        # Generate random height
+        h = np.random.random(size=(n_particles,1))*height
+        # Generate random radius
+        u = (np.random.random(size=(n_particles,1))*(1-(r2/r1)**2)+(r2/r1)**2)**0.5
+        p = np.hstack([p*u*r1,h])+np.array(init_pos)[:self.dim]
+        self.add_object(p,color,init_rot=init_rot)
+
     def get(self):
         assert len(self.objects) > 0, "please add at least one shape into the scene"
         return np.concatenate(self.objects), np.concatenate(self.colors)
