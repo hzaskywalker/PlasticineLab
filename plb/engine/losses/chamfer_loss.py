@@ -6,7 +6,8 @@ import torch
 import torch.nn as nn
 import taichi as ti
 from ..mpm_simulator import MPMSimulator
-from chamfer_distance import ChamferDistance
+from ...chamfer_distance import ChamferDistance
+#from chamferdist import ChamferDistance
 #sys.path.append(os.path.join("ChamferDistancePytorch"))
 
 #from chamfer3D import dist_chamfer_3D
@@ -21,6 +22,7 @@ class ChamferLoss(nn.Module):
         self.sim = sim
         self.loss = ti.field(dtype=ti.f64,shape=(), needs_grad=True)
         self.loss_fn = ChamferDistance()
+        #self.loss_fn = nn.MSELoss()
         self.grad_buffer = []
         self.cur_buffer = []
         self.cum_loss = []
@@ -41,9 +43,10 @@ class ChamferLoss(nn.Module):
         output = torch.from_numpy(self.sim.get_x(self.sim.cur)).float().cuda()
         output.requires_grad_()
         s = output.shape
-        dist1, dist2, _, _ = self.loss_fn(self.target.view(1,s[0],s[1]), output.view(1,s[0],s[1]))
-        loss = (torch.sqrt(dist1).mean(1) + torch.sqrt(dist2).mean(1)) / 2
-        loss = loss.mean()*10/(decay**(cur//self.sim.substeps))
+        #dist1,dist2 = self.loss_fn(self.target.view(1,s[0],s[1]), output.view(1,s[0],s[1]))
+        #loss = (torch.sqrt(dist1).mean(1)+torch.sqrt(dist2).mean(1))/2
+        loss = self.loss_fn(self.target.view(1,s[0],s[1]), output.view(1,s[0],s[1]))
+        loss = (loss.mean()*10)/(decay**(cur//self.sim.substeps))
         self.loss[None] = float(loss)
         loss.backward()
         # set the gradient of x at step 1

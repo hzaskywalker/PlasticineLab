@@ -103,15 +103,16 @@ class PointCloudAEDataset(Dataset):
 
 class ChopSticksDataset(PointCloudDataset):
     def __init__(self):
-        super(ChopSticksDataset,self).__init__('data/chopsticks.npz')
+        super(ChopSticksDataset,self).__init__('data/old_dataset/chopsticks.npz')
 
 class RopeDataset(PointCloudDataset):
     def __init__(self):
-        super(RopeDataset,self).__init__('data/rope.npz')
+        super(RopeDataset,self).__init__('data/old_dataset/rope.npz')
 
-class TableDataset(PointCloudDataset):
+class TorusDataset(PointCloudDataset):
     def __init__(self):
-        super(TableDataset,self).__init__('data/table.npz')
+        super(TorusDataset,self).__init__('data/torus.npz')
+
 
 if __name__ == '__main__':
     import time
