@@ -18,7 +18,7 @@ from ..engine.losses import state_loss, emd_loss, chamfer_loss, loss
 from ..engine.taichi_env import TaichiEnv
 from ..envs import make
 from ..neurals.autoencoder import PCNAutoEncoder
-from ..neurals.pcdataloader import ChopSticksDataset, RopeDataset
+from ..neurals.pcdataloader import ChopSticksDataset, RopeDataset, WriterDataset, TorusDataset
 
 HIDDEN_LAYERS = 256
 LATENT_DIMS   = 1024
@@ -130,8 +130,11 @@ def _loading_dataset()->DataLoader:
 
     :return: a dataloader of ChopSticksDataset
     """
-    dataset = ChopSticksDataset()
+    #dataset = ChopSticksDataset()
     #dataset = RopeDataset()
+    #dataset = WriterDataset()
+    dataset = TorusDataset()
+
     dataloader = DataLoader(dataset,batch_size = mpi.num_procs())
     return dataloader
 
@@ -175,7 +178,7 @@ def _intialize_model(taichiEnv: TaichiEnv, device: torch.device)->PCNAutoEncoder
     :return: the intialized encoding model
     """
     model = PCNAutoEncoder(taichiEnv.n_particles, HIDDEN_LAYERS, LATENT_DIMS, FEAT_DMIS)
-    model.load_state_dict(torch.load("pretrain_model/srl/chopsticks/whole.pth"))
+    model.load_state_dict(torch.load("pretrain_model/autoencoder/torus/whole.pth"))
     model = model.cpu()
     return model
 

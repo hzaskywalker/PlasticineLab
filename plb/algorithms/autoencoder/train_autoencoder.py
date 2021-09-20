@@ -45,6 +45,7 @@ assert(args.dataset in ['chopsticks','rope','torus','writer'])
 dataset = PointCloudAEDataset('data/{}.npz'.format(args.dataset))
 dataloader = DataLoader(dataset,batch_size=20)
 model = PCNAutoEncoder(dataset.n_particles,latent_dim=1024,hidden_dim=1024)
+
 if args.freeze_encoder:
     for p in model.encoder.parameters():
         p.requires_grad = False
@@ -55,6 +56,7 @@ if args.saved_model != None:
     elif args.saved_model.endswith('decoder'):
         model.decoder.load_state_dict(torch.load('pretrain_model/{}.pth'.format(args.saved_model)))
     else:
+        print("Whole Model Loaded")
         model.load_state_dict(torch.load('pretrain_model/{}.pth'.format(args.saved_model)))
 model = model.to(device)
 optimizer = torch.optim.Adam(model.parameters(),lr=2e-5)
@@ -72,7 +74,8 @@ try:
 except KeyboardInterrupt:
     print("Training is interrupted!")
 finally:
-    torch.save(model,'pretrain_model/{}.pth'.format(args.exp_name))
+    torch.save(model.state_dict(),'pretrain_model/{}_whole.pth'.format(args.exp_name))
+    torch.save(model.encoder.state_dict(),'pretrain_model/{}_encoder.pth'.format(args.exp_name))
     print("Model Has been saved !")
 
 

@@ -113,6 +113,10 @@ class TorusDataset(PointCloudDataset):
     def __init__(self):
         super(TorusDataset,self).__init__('data/torus.npz')
 
+class WriterDataset(PointCloudDataset):
+    def __init__(self):
+        super(WriterDataset,self).__init__("data/writer.npz")
+
 
 if __name__ == '__main__':
     import time

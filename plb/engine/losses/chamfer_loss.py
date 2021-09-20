@@ -43,9 +43,9 @@ class ChamferLoss(nn.Module):
         output = torch.from_numpy(self.sim.get_x(self.sim.cur)).float().cuda()
         output.requires_grad_()
         s = output.shape
-        #dist1,dist2 = self.loss_fn(self.target.view(1,s[0],s[1]), output.view(1,s[0],s[1]))
-        #loss = (torch.sqrt(dist1).mean(1)+torch.sqrt(dist2).mean(1))/2
-        loss = self.loss_fn(self.target.view(1,s[0],s[1]), output.view(1,s[0],s[1]))
+        dist1,dist2 = self.loss_fn(self.target.view(1,s[0],s[1]), output.view(1,s[0],s[1]))
+        loss = (torch.sqrt(dist1).mean(1)+torch.sqrt(dist2).mean(1))/2
+        #loss = self.loss_fn(self.target.view(1,s[0],s[1]), output.view(1,s[0],s[1]))
         loss = (loss.mean()*10)/(decay**(cur//self.sim.substeps))
         self.loss[None] = float(loss)
         loss.backward()
