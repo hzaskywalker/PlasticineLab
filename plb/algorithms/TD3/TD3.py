@@ -169,7 +169,7 @@ class TD3(object):
 		noise_clip=0.5,
 		policy_freq=2,
 		enable_latent = False,
-		model_name = None,
+		model_name = None
 	):
 		print("state_dim:",state_dim,
 			  "action_dim:",action_dim,

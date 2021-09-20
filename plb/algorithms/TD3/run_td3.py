@@ -63,12 +63,13 @@ def train_td3(env, path, logger, old_args):
     parser.add_argument("--policy_freq", default=2, type=int)       # Frequency of delayed policy updates
     parser.add_argument("--save_model", action="store_true")        # Save model and optimizer parameters
     parser.add_argument("--load_model", default="")                 # Model load file name, "" doesn't load, "default" uses file_name
-
-    max_timesteps = old_args.num_steps
+    parser.add_argument("--model_name", default="")
 
     args, _ = parser.parse_known_args()
-    args.max_timesteps = max_timesteps
+    args.max_timesteps = old_args.num_steps
 
+    if len(args.model_name) == 0:
+        args.model_name = old_args.model_name
     args.discount = float(args.gamma)
 
     log_path = path
@@ -120,6 +121,8 @@ def train_td3(env, path, logger, old_args):
     print("Number of steps:",args.max_timesteps)
     reward_buffer = np.zeros((5,1010))
     iou_buffer = np.zeros((5,1010))
+    if not os.path.exists('loggings'):
+        os.mkdir('loggings')
     logging_file = open('loggings/{}_output.txt'.format(old_args.exp_name),'w')
     try:
         for iter in range(5):
@@ -185,6 +188,11 @@ def train_td3(env, path, logger, old_args):
         error_msg = "iter:{},t:{}\n".format(iter,t)
         logging_file.writelines(error_msg)
     finally:
+        if not os.path.exists("ious"):
+            os.mkdir("ious")
+        if not os.path.exists("rewards"):
+            os.mkdir("rewards")
         np.save('ious/'+old_args.exp_name+'_ious.npy',iou_buffer)
         np.save('rewards/'+old_args.exp_name+'_rewards.npy',reward_buffer)
         logging_file.close()
+ 

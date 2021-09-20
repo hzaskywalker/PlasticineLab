@@ -2,7 +2,7 @@ from token import ENDMARKER
 import numpy as np
 import cv2
 import taichi as ti
-from .losses import Loss, StateLoss, ChamferLoss, EMDLoss
+from .losses import Loss ,StateLoss, ChamferLoss, EMDLoss
 
 # TODO: run on GPU, fast_math will cause error on float64's sqrt; removing it cuases compile error..
 def init_taichi():
