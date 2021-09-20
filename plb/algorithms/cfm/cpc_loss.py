@@ -39,3 +39,20 @@ class OriginInfoNCELoss(InfoNCELoss):
 
         dists = torch.cat((neg_dot_prod,pos_dot_prod), dim=1)
         return dists
+
+class ForwardLoss(nn.Module):
+    def __init__(self):
+        super(ForwardLoss,self).__init__()
+        self.loss_fn = nn.MSELoss()
+
+    def forward(self,latent, latent_pred, latent_next):
+        return self.loss_fn(latent_pred,latent_next)
+
+class InverseLoss(nn.Module):
+    def __init__(self):
+        super(InverseLoss,self).__init__()
+        self.loss_fn = nn.MSELoss()
+
+    def forward(self,action_pred,actions):
+        return self.loss_fn(action_pred,actions)
+        
