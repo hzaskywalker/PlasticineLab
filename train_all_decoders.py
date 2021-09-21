@@ -1,11 +1,13 @@
 import os
+import traceback
 
 import plb.algorithms.autoencoder.train_autoencoder as trainer
 
 ENCODER_METHODS = {
     "cfm", 
     "inverse",
-    "forward"
+    "forward", 
+    "e2c"
 }
 
 DATASETS = {
@@ -15,7 +17,7 @@ DATASETS = {
     "writer"
 }
 
-_DRY_RUN = True
+_DRY_RUN = False
 
 def _folder_name_2_dataset(folderName:str) -> str:
     """ Converting the folder name to the corresponding dataset
@@ -61,17 +63,17 @@ def _find_encoder_and_train(firstLevelDir: str, secondLevelDir: str):
     if _DRY_RUN:
         print(f"now running auto encoder on {fullPath2Encoder}: \\\n" + \
             f"\t--saved_model = {fullPath2Encoder} \\\n" + \
-            f"\t--exp_name    = decoder_{firstLevelDir}_{secondLevelDir} \\\n" + \
+            f"\t--exp_name    = {firstLevelDir}/{secondLevelDir}/whole \\\n" + \
             f"\t--dataset     = {_folder_name_2_dataset(secondLevelDir)} \n"
         )
     else:
-        experiment = f"{firstLevelDir}_{secondLevelDir}"
-        with open(os.path.join("out", "decoder", experiment), 'w') as f:
+        outFile = f"{firstLevelDir}_{secondLevelDir}.out"
+        with open(os.path.join("out", "decoder", outFile), 'w') as f:
             trainer.main(
                 loss          = "chamfer", 
                 iters         = 100, 
                 savedModel    = fullPath2Encoder, 
-                expName       = "decoder_"+experiment,
+                expName       = os.path.join(firstLevelDir, secondLevelDir, "whole"),
                 dataset       = _folder_name_2_dataset(secondLevelDir),
                 freezeEncoder = True,
                 loggerFunc    = lambda line: f.write(line+'\n')
@@ -92,4 +94,10 @@ if __name__ == '__main__':
 
         envFolders = os.listdir(os.path.join("pretrain_model", eachMethod))
         for eachEnv in envFolders:
-            _find_encoder_and_train(eachMethod, eachEnv)
+            try:
+                _find_encoder_and_train(eachMethod, eachEnv)
+            except KeyboardInterrupt:
+                print("\033[31mKeyboard Interruption[0m") 
+                exit(0)
+            except Exception:
+                print(f"\033[31mFailed to tackle {eachMethod}/{eachEnv} => {traceback.format_exc()}\033[0m") 
