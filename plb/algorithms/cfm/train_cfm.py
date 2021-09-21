@@ -3,6 +3,7 @@ import os
 from typing import Tuple, Union
 
 import torch
+import torch.nn
 from torch.utils.data.dataloader import DataLoader
 
 from ...neurals.autoencoder import PCNEncoder
@@ -14,6 +15,15 @@ device = torch.device('cuda')
 
 STATE_DIM  = 3
 LATENT_DIM = 1024
+PRETRAIN_MODEL = "pretrain_model"
+LOSS_FN_TABLE = {
+    'Forward':ForwardLoss,
+    'E2C':ForwardLoss,
+    'OriginInfoNCE':OriginInfoNCELoss,
+    'InfoNCE':InfoNCELoss
+}
+FORWARD_MODELS = {'E2C','InfoNCE','OriginInfoNCE','Forward'}
+INVERSE_MODELS = {'E2C','Inverse'}
 
 def _complexity_2_enum(complexity: int) -> ForwardModel.ComplexityLevel:
     if complexity == 0: return ForwardModel.ComplexityLevel.MLP
@@ -22,14 +32,25 @@ def _complexity_2_enum(complexity: int) -> ForwardModel.ComplexityLevel:
 
     raise NotImplementedError("only 0, 1, 2 are supported")
 
-def _complexity_and_loss_2_str(complexity: int, loss: str) -> str:
-    if loss == 'OriginInfoNCELoss': return "origin_loss"
-    if complexity == 0: return f"cfm_{loss}"
-    if complexity == 1: return f"smaller_{loss}"
-    if complexity == 2: return f"linear_{loss}"
+def _model_saving_path(lossType: str, dataset: str, complexity: Union[ForwardModel.ComplexityLevel, None] = None) -> str:
+    lossTypeLower = lossType.lower()
+    if lossTypeLower == 'inverse' or lossTypeLower == 'e2c' or lossTypeLower == 'forward':
+        return os.path.join(PRETRAIN_MODEL, lossTypeLower, dataset, "encoder")
+    elif lossTypeLower == 'origininfonce':
+        return os.path.join(PRETRAIN_MODEL, "cfm", f"{dataset}_origin_loss", "encoder")
+    else: # loss type is InfoNCELoss
+        assert complexity is not None, \
+            "For CFM encoder w/ InfoNCELoss, complexity MUST NOT BE NONE"
+        if complexity == ForwardModel.ComplexityLevel.MLP:
+            complexityStr = "cfm"
+        elif complexity == ForwardModel.ComplexityLevel.SimpleMLP:
+            complexityStr = "smaller"
+        else:
+            complexityStr = "linear"
+        return os.path.join(PRETRAIN_MODEL, "cfm", f"{dataset}_{complexityStr}", encoder)
 
 
-def _preparation(datasetName: str, batchSize: int, complexity: int) -> Tuple[DataLoader, PCNEncoder, ForwardModel]:
+def _preparation(datasetName: str, batchSize: int, complexity: ForwardModel.ComplexityLevel) -> Tuple[DataLoader, PCNEncoder, ForwardModel]:
     dataset = CFMDataset(datasetName) 
     dataloader = DataLoader(dataset, batch_size = batchSize)
 
@@ -43,7 +64,7 @@ def _preparation(datasetName: str, batchSize: int, complexity: int) -> Tuple[Dat
 
     forwardModel = ForwardModel(
         latent_dim=LATENT_DIM,
-        complexityLevel=_complexity_2_enum(complexity), 
+        complexityLevel=complexity, 
         action_dim=nActions
     ).to(device)
 
@@ -73,9 +94,9 @@ def train(encoder:PCNEncoder,
         latent_pred = forward_model(latent, action)
         latent_next = encoder(target)
         loss = 0
-        if loss_type in ['E2C','InfoNCE','OriginInfoNCE','Forward']:
+        if loss_type in FORWARD_MODELS:
             loss += forward_loss_fn(latent, latent_pred, latent_next)
-        if loss_type in ['E2C','Inverse']:
+        if loss_type in INVERSE_MODELS:
             action_pred = inverse_model(latent,latent_next)
             loss += inverse_loss_fn(action_pred,action)
         total_loss += float(loss)
@@ -86,28 +107,30 @@ def train(encoder:PCNEncoder,
 
 
 if __name__ == '__main__':
-    assert os.path.exists('pretrain_model/cfm'), \
-        "There must be an pretrain_model/cfm directory to store the training result"
+    for modelClass in ['cfm', 'inverse', 'forward', 'e2c']:
+        assert os.path.exists(os.path.join(PRETRAIN_MODEL, modelClass)), \
+            f"There must be an pretrain_model/{modelClass} directory to store the training result"
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset',    '-d', type=str, default='Chopsticks', help="dataset for CFM training, relative path to the `data` folder; NO .npz suffix needed")
     parser.add_argument('--batch_size', '-b', type=int, default=32)
     parser.add_argument('--num_iters',  '-n', type=int, default=10)
-    parser.add_argument('--loss',       '-l', type=str, default="", help="<InfoNCE/OriginInfoNCE/Forward/Inverse/E2C>")
+    parser.add_argument('--loss',       '-l', type=str, default="InfoNCE", help="[InfoNCE / OriginInfoNCE / Forward / Inverse / E2C]")
     parser.add_argument('--complexity', '-c', type=int, default=0, help="0 --- MLP; 1 --- SmallerMLP; 2 --- Linear")
     args = parser.parse_args()
 
-    dataloader, encoder, forward_model, inverse_model = _preparation(args.dataset, args.batch_size, args.complexity)
-    loss_fn_table = {'Forward':ForwardLoss,
-                     'E2C':ForwardLoss,
-                     'OriginInfoNCE':OriginInfoNCELoss,
-                     'InfoNCE':InfoNCELoss}
+    if args.complexity is not 0:
+        print("\033[33mWARNING: the --complexity argument are only for CFM losses, i.e. either InfoNCE or OriginInfoNCE\033[0m")
+
+    complexity = _complexity_2_enum(args.complexity)
+
+    dataloader, encoder, forward_model, inverse_model = _preparation(args.dataset, args.batch_size, complexity)
+
+    forward_loss_fn = None
     if args.loss != 'Inverse':
-        forward_loss_fn = loss_fn_table[args.loss]()
+        forward_loss_fn = LOSS_FN_TABLE[args.loss]()
     inverse_loss_fn = InverseLoss()
     
-
-
     params = list(encoder.parameters()) + list(forward_model.parameters())
     optimizer = torch.optim.Adam(params, lr=0.0001)
 
@@ -116,7 +139,7 @@ if __name__ == '__main__':
             loss = train(encoder,forward_model,optimizer,dataloader, args.loss,forward_loss_fn=forward_loss_fn,inverse_model=inverse_model,inverse_loss_fn=inverse_loss_fn)
             print(f"Iteration:{iter}, Loss:{loss}")
     finally:
-        pthName = f'pretrain_model/cfm/{args.dataset.lower()}_{_complexity_and_loss_2_str(args.complexity, args.loss)}/encoder'
+        pthName = _model_saving_path(args.loss, args.dataset, complexity)
         while os.path.exists(pthName + ".pth"):
             print(f"{pthName}.pth exists; saving as {pthName}_new.pth")
             pthName += "_new"
