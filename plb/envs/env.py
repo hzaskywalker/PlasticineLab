@@ -53,7 +53,7 @@ class PlasticineEnv(gym.Env):
             outs.append(i.get_state(t))
         s = np.concatenate(outs)
         step_size = len(x) // self._n_observed_particles
-        return np.concatenate((np.concatenate((x[::step_size], v[::step_size]), axis=-1).reshape(-1), s.reshape(-1)))
+        return np.concatenate((np.concatenate((x[::step_size], v[::step_size]), axis=0).reshape(-1), s.reshape(-1)))
     
     def _get_x(self,t=0):
         x_current = self.taichi_env.simulator.get_x(t)
@@ -63,7 +63,7 @@ class PlasticineEnv(gym.Env):
             outs.append(i.get_state(t))
         s = np.concatenate(outs)
         step_size = len(x_current) // self._n_observed_particles
-        ret = np.concatenate((np.concatenate((x_current[::step_size], x_prev[::step_size]), axis=-1).reshape(-1), s.reshape(-1)))
+        ret = np.concatenate((np.concatenate((x_current[::step_size], x_prev[::step_size]), axis=0).reshape(-1), s.reshape(-1)))
         return ret
 
     def step(self, action,obs='x'):

@@ -525,7 +525,7 @@ class MPMSimulator:
                 self.grid_m[base + offset] += weight * self.p_mass
 
     @ti.complex_kernel
-    def act(self,obs,cur,a):
+    def act(self,obs,cur,a,obs_type='x'):
         obs_tensor = torch.from_numpy(obs).requires_grad_()
         # obs_tensor = torch.from_numpy(obs.reshape(1,1,-1)).requires_grad_() # lstm
         self.torch_obs.append(obs_tensor)
@@ -535,7 +535,7 @@ class MPMSimulator:
         a[:] = action.detach().numpy()[:]
 
     @ti.complex_kernel_grad(act)
-    def act_grad(self,obs,cur,a):
+    def act_grad(self,obs,cur,a,obs_type='x'): 
         action = self.torch_actions.pop()
         # This get the gradient for a action
         actuation_grad = self.primitives.get_step_grad(cur)
@@ -549,8 +549,21 @@ class MPMSimulator:
         action.backward(clipped_actuation_grad)
         # Should be a function which calls multiple kernel function to set gradient
         state_grad = self.torch_obs.pop().grad
-        self.set_input_particles_grad(cur,state_grad.numpy().reshape(-1)) # TODO: Implement may be tricky
+        arg1_grad,arg2_grad = self.formulate_grad(state_grad)
+        
+        #self.set_input_particles_grad(cur,state_grad.numpy().reshape(-1)) # TODO: Implement may be tricky
+        cur_prev = 0 if cur == 0 else cur-1
+        self.set_input_x_grad(cur,arg1_grad.numpy().reshape(-1))
+        if obs_type == 'x':
+            self.set_input_x_grad(cur_prev,arg2_grad.numpy().reshape(-1))
+        else:
+            self.set_input_v_grad(cur,arg2_grad.numpy().reshape(-1))
         self.set_input_primitives_grad(cur,state_grad.numpy().reshape(-1))
+
+    def formulate_grad(self,state_grad):
+        arg1_grad = state_grad[:self.obs_num*3]
+        arg2_grad = state_grad[self.obs_num*3:self.obs_num*6]
+        return arg1_grad,arg2_grad
 
     @ti.kernel
     def set_input_particles_grad(self,t: ti.i32,grad:ti.ext_arr()):
@@ -559,6 +572,18 @@ class MPMSimulator:
                 self.x.grad[t*self.substeps, i * self.obs_step][j] += grad[i*6+j]
             for j in ti.static(range(3)):
                 self.v.grad[t*self.substeps, i * self.obs_step][j] += grad[i*6+j+3]
+
+    @ti.kernel
+    def set_input_x_grad(self,t: ti.i32, grad:ti.ext_arr()):
+        for i in range(self.obs_num):
+            for j in ti.static(range(3)):
+                self.x.grad[t*self.substep, i * self.obs_step][j] += grad[i*3+j]
+
+    @ti.kernel
+    def set_input_v_grad(self,t: ti.i32, grad:ti.ext_arr()):
+        for i in range(self.obs_num):
+            for j in ti.static(range(3)):
+                self.v.grad[t*self.substep, i * self.obs_step][j] += grad[i*3+j]
 
     @ti.kernel
     def set_input_primitives_grad(self,t: ti.i32,grad:ti.ext_arr()):

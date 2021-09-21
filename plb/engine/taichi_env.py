@@ -140,9 +140,9 @@ class TaichiEnv:
         self.simulator.set_nn(nn)
     # obs will be an numpy array
     # obs will be the last step cur
-    def act(self,obs):
+    def act(self,obs,obs_type='x'):
         action = np.zeros(self.simulator.primitives.action_dims[-1])
-        self.simulator.act(obs,self.simulator.cur,action)
+        self.simulator.act(obs,self.simulator.cur,action,obs_type)
         return action
 
     def set_target(self,target):
