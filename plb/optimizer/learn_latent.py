@@ -279,6 +279,6 @@ def learn_latent(
 
     if mpi.proc_id() == 0:
         # ONLY one proc can store the model
-        mpi.msg(f"Total global average loss:", mpi.avg(totalAverageLoss))
+        mpi.msg(f"Total global average loss:", totalAverageLoss)
         torch.save(model.state_dict(),"pretrain_model/rope_model.pth")
         torch.save(model.encoder.state_dict(),"pretrain_model/rope_encoder.pth")

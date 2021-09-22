@@ -74,7 +74,8 @@ def main(
     except KeyboardInterrupt:
         print("Training is interrupted!")
     finally:
-        torch.save(model,'pretrain_model/{}.pth'.format(expName))
+        torch.save(model.state_dict(),'pretrain_model/{}_whole.pth'.format(expName))
+        torch.save(model.encoder.state_dict(),'pretrain_model/{}_encoder.pth'.format(expName))
         print("Model Has been saved !")
 
 if __name__ == '__main__':
