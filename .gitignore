@@ -38,6 +38,7 @@ debug_rewards.npy
 *dsprites-dataset*
 action_sin/
 tb/
+ChamferDistancePytorch/
 # compiler output
 *.so*
 *build

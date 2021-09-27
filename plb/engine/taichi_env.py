@@ -87,8 +87,8 @@ class TaichiEnv:
         else:
             t = self.simulator.cur
 
-        x = self.simulator.get_x(t, needs_grad=False)
-        v = self.simulator.get_v(t, needs_grad=False)
+        x = self.simulator.get_x(t)
+        v = self.simulator.get_v(t)
         outs = []
         for i in self.primitives:
             outs.append(i.get_state(t, needs_grad=False))

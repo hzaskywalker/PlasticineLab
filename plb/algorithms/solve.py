@@ -5,12 +5,12 @@ import random
 import numpy as np
 import torch
 
-from plb.mpi import mpi_tools
+#from plb.mpi import mpi_tools
 
-if os.getenv("IN_MPI") is not None:
-    cudaCore = mpi_tools.proc_id() % mpi_tools.NUM_CUDA
-    os.environ['CUDA_VISIBLE_DEVICES'] = f'{cudaCore}'
-    mpi_tools.msg(f"DEBUG GPU CORE>>>>>>> cuda:{cudaCore}")
+#if os.getenv("IN_MPI") is not None:
+#    cudaCore = mpi_tools.proc_id() % mpi_tools.NUM_CUDA
+#    os.environ['CUDA_VISIBLE_DEVICES'] = f'{cudaCore}'
+#    mpi_tools.msg(f"DEBUG GPU CORE>>>>>>> cuda:{cudaCore}")
     
 from plb.engine import taichi_env
 from plb.envs import make
@@ -20,9 +20,9 @@ from plb.algorithms.ppo.run_ppo import train_ppo
 from plb.algorithms.TD3.run_td3 import train_td3
 from plb.optimizer.solver import solve_action
 from plb.optimizer.solver_nn import solve_nn
-from plb.optimizer.solver_torch_nn import solve_torch_nn
-from plb.optimizer.learn_latent import learn_latent
-from plb.optimizer.focal_learn_latent import learn_latent_focal
+from plb.optimizer.solver_torch_nnv2 import solve_torch_nnv2
+#from plb.optimizer.learn_latent import learn_latent
+#from plb.optimizer.focal_learn_latent import learn_latent_focal
 from plb.optimizer.human import human_control
 from plb.engine.losses import Loss, StateLoss, ChamferLoss, EMDLoss
 
@@ -106,7 +106,7 @@ def main():
         elif args.algo == 'nn':
             solve_nn(env, args.path, logger, args)
         elif args.algo == 'torch_nn':
-            solve_torch_nn(env, args)
+            solve_torch_nnv2(env, args)
         elif args.algo == 'human':
             human_control(env,args.path,logger,args)
         else:

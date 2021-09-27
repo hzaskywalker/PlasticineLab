@@ -13,7 +13,7 @@ from plb.algorithms.logger import Logger
 from .optim import Optimizer
 from ..engine.taichi_env import TaichiEnv
 from ..config.utils import make_cls_config
-from ..neural import LatentPolicyEncoder
+from ..neurals import LatentPolicyEncoder
 
 AF = {
     "Tanh": F.tanh,
@@ -23,7 +23,7 @@ AF = {
 
 
 class MLP(nn.Module):
-    def __init__(self, input_dim, output_dim, hidden=(256, 256), activation="Tanh"):
+    def __init__(self, input_dim, output_dim, hidden=(256, 256), activation="ReLU"):
         super(MLP, self).__init__()
         self.af = AF[activation]
         dims = (input_dim,) + hidden + (output_dim,)
@@ -46,7 +46,7 @@ class MLP(nn.Module):
 
 
 class SolverTorchNN:
-    def __init__(self, env, srl=False,logger=None, data_dir='', **kwargs):
+    def __init__(self, env, srl=False,logger=None, data_dir='',model_name='', **kwargs):
         self.cfg = make_cls_config(self, None, **kwargs)
         self.env = env
         self.logger = logger
@@ -55,6 +55,7 @@ class SolverTorchNN:
         # self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.device = 'cpu'
         if srl:
+            print("Using State Representation Learning")
             encoder = LatentPolicyEncoder(
                 n_particles = self.env.n_particles,
                 n_layers = 5,
@@ -62,10 +63,14 @@ class SolverTorchNN:
                 hidden_dim = 256,
                 latent_dim = 1024,
                 primitive_dim = env.observation_space.shape[0] - 6*self.env.n_particles).to(self.device)
+            if model_name != '':
+                print(f"Load model at{model_name}")
+                encoder.load_model(f'pretrain_model/{model_name}.pth')
             mlp = MLP(self.encoder.output_dim,env.action_space.shape[0],
                           hidden = self.cfg.nn.hidden, activation=self.cfg.nn.af).double().to(self.device)
             self.nn = nn.Sequential(encoder,mlp)
         else:
+            print("Using sample based representation")
             self.nn = MLP(env.observation_space.shape[0], env.action_space.shape[0],
                           hidden=self.cfg.nn.hidden, activation=self.cfg.nn.af).double().to(self.device)
         self.learning_rate = self.cfg.optim.lr
@@ -83,8 +88,7 @@ class SolverTorchNN:
         with ti.Tape(loss=taichi_env.loss.loss):
             for i in range(self.cfg.horizon):
                 action = taichi_env.act(obs,self.obs_type)  # Need to be wrapped
-                #action_np = action.data.cpu().numpy()
-                obs, reward, done, loss_info = self.env.step(action,self.obs_type)
+                obs, reward, done, loss_info = self.env.step(action)
 
                 if self.logger is not None:
                     self.logger.step(
@@ -156,18 +160,20 @@ def solve_torch_nnv2(env, args):
     T = env._max_episode_steps
 
     nn_name = f"nnv2_gv-{1.0}"
+    nn_hidden = (256,256)
+    nn_af = 'ReLU'
 
-    exp_name = f"{nn_name}_{args.env_name}_horizon-{T}_hidden-{args.hidden}_lr-{args.lr}_af-{args.af}"
+    exp_name = f"{nn_name}_{args.env_name}_horizon-{T}_hidden-{nn_hidden}_lr-{args.lr}"
 
     path = f"data/{exp_name}/{exp_name}_s{args.seed}"
     os.makedirs(path, exist_ok=True)
     logger = Logger(path, exp_name)
     env.reset()
 
-    solver = SolverTorchNN(env, logger, srl = args.srl, data_dir=path,
-                           n_iters=200,
+    solver = SolverTorchNN(env=env, logger=logger, srl = args.srl, data_dir=path,
+                           model_name = args.model_name,n_iters=200,
                            softness=args.softness, horizon=T,
-                           **{"optim.lr": args.lr, "nn.hidden": args.hidden, "nn.af": args.af})
+                           **{"optim.lr": args.lr, "nn.hidden": nn_hidden, "nn.af":nn_af})
 
     actions = solver.solve()
     # actions = solver.inference()

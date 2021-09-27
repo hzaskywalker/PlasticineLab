@@ -559,6 +559,7 @@ class MPMSimulator:
         else:
             self.set_input_v_grad(cur,arg2_grad.numpy().reshape(-1))
         self.set_input_primitives_grad(cur,state_grad.numpy().reshape(-1))
+        print(f"In act_grad: {cur}")
 
     def formulate_grad(self,state_grad):
         arg1_grad = state_grad[:self.obs_num*3]
@@ -594,13 +595,6 @@ class MPMSimulator:
             for j in ti.static(range(4)):
                 self.primitives[i].rotation.grad[t*self.substeps][j] += grad[base+i*7+3+j]
 
-
-    def get_v_nokernel(self):
-        v = np.zeros((self.n_particles,self.dim),dype=np.float64)
-        for i in range(self.n_particles):
-            for j in range(self.dim):
-                v[i,j] = self.v[1,i][j]
-        return v
 
     """
     @ti.complex_kernel

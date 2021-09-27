@@ -66,12 +66,12 @@ class PlasticineEnv(gym.Env):
         ret = np.concatenate((np.concatenate((x_current[::step_size], x_prev[::step_size]), axis=0).reshape(-1), s.reshape(-1)))
         return ret
 
-    def step(self, action,obs='x'):
+    def step(self, action):
         self.taichi_env.step(action)
-        loss_info = self.taichi_env.compute_loss()
+        loss_info = self.taichi_env.compute_loss(taichi_loss=True)
 
         self._recorded_actions.append(action)
-        obs = self._get_vx() if obs == 'vx' else self._get_x()
+        obs = self._get_vx() if not self.full_obs else self._get_x()
         r = loss_info['reward']
         if np.isnan(obs).any() or np.isnan(r):
             if np.isnan(r):
