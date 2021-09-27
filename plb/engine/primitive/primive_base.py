@@ -28,9 +28,12 @@ class Primitive:
 
         self.friction = ti.field(dtype, shape=())
         self.softness = ti.field(dtype, shape=())
+
         self.color = ti.Vector.field(3, ti.f64, shape=()) # positon of the primitive
-        self.position = ti.Vector.field(3, dtype, needs_grad=True) # positon of the primitive
-        self.rotation = ti.Vector.field(4, dtype, needs_grad=True) # quaternion for storing rotation
+        self.position = ti.Vector.field(3, dtype, 
+                        needs_grad=True) # positon of the primitive
+        self.rotation = ti.Vector.field(4, dtype, 
+                        needs_grad=True) # quaternion for storing rotation
 
         self.v = ti.Vector.field(3, dtype, needs_grad=True)  # velocity
         self.w = ti.Vector.field(3, dtype, needs_grad=True)  # angular velocity
@@ -160,7 +163,7 @@ class Primitive:
         for j in ti.static(range(4)):
             self.rotation[f][j] = controller[j+self.dim]
 
-    def get_state(self, f, needs_grad=True):
+    def get_state(self, f, needs_grad=False):
         out = np.zeros((7), dtype=np.float64)
         if needs_grad:
             self.get_state_kernel(f, out)

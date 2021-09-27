@@ -6,11 +6,11 @@ import torch
 import torch.nn as nn
 import taichi as ti
 from ..mpm_simulator import MPMSimulator
-#from ...chamfer_distance import ChamferDistance
+from ...chamfer_distance import ChamferDistance
 #from chamferdist import ChamferDistance
-sys.path.append(os.path.join("ChamferDistancePytorch"))
+#sys.path.append(os.path.join("ChamferDistancePytorch"))
 
-from chamfer3D import dist_chamfer_3D
+#from chamfer3D import dist_chamfer_3D
 
 # Use Chamfer Loss which will be slower but more consistant with pretrain.
 
@@ -21,8 +21,8 @@ class ChamferLoss(nn.Module):
         dtype = self.dtype = sim.dtype
         self.sim = sim
         self.loss = ti.field(dtype=ti.f64,shape=(), needs_grad=True)
-        #self.loss_fn = ChamferDistance()
-        self.loss_fn = dist_chamfer_3D.chamfer_3DDist()
+        self.loss_fn = ChamferDistance()
+        #self.loss_fn = dist_chamfer_3D.chamfer_3DDist()
         #self.loss_fn = nn.MSELoss()
         self.grad_buffer = []
         self.cur_buffer = []

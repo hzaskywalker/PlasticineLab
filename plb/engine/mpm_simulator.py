@@ -394,11 +394,8 @@ class MPMSimulator:
 
     def set_state(self, f, state):
         self.setframe(f, *state[:4])
-        # Not used in real case.
-        #print("Reached Here!")
         cur = 0
         for s, i in zip(state[4:], self.primitives):
-            #print("state:",s)
             state_dim = i.__class__.state_dim
             i.set_state(f, s[cur:cur+state_dim])
             cur += state_dim
@@ -449,7 +446,7 @@ class MPMSimulator:
         self.get_x_grad_kernel(f,x_grad)
 
     @ti.complex_kernel_grad(get_x_grad_tape)
-    def get_x_grad_tape(self,f:ti.i32, x_grad:ti.ext_arr()):
+    def get_x_grad_tape_grad(self,f:ti.i32, x_grad:ti.ext_arr()):
         return
 
     def get_x_grad(self,f):
@@ -559,7 +556,6 @@ class MPMSimulator:
         else:
             self.set_input_v_grad(cur,arg2_grad.numpy().reshape(-1))
         self.set_input_primitives_grad(cur,state_grad.numpy().reshape(-1))
-        print(f"In act_grad: {cur}")
 
     def formulate_grad(self,state_grad):
         arg1_grad = state_grad[:self.obs_num*3]
@@ -578,13 +574,13 @@ class MPMSimulator:
     def set_input_x_grad(self,t: ti.i32, grad:ti.ext_arr()):
         for i in range(self.obs_num):
             for j in ti.static(range(3)):
-                self.x.grad[t*self.substep, i * self.obs_step][j] += grad[i*3+j]
+                self.x.grad[t*self.substeps, i * self.obs_step][j] += grad[i*3+j]
 
     @ti.kernel
     def set_input_v_grad(self,t: ti.i32, grad:ti.ext_arr()):
         for i in range(self.obs_num):
             for j in ti.static(range(3)):
-                self.v.grad[t*self.substep, i * self.obs_step][j] += grad[i*3+j]
+                self.v.grad[t*self.substeps, i * self.obs_step][j] += grad[i*3+j]
 
     @ti.kernel
     def set_input_primitives_grad(self,t: ti.i32,grad:ti.ext_arr()):
