@@ -38,4 +38,4 @@ for i in range(len(means)):
     plot = plt.plot(x[args.begin:args.end],means[i][args.begin:args.end],color=colors[i],label = filenames[i][:-4])
     plt.fill_between(x[args.begin:args.end],means[i][args.begin:args.end]+stds[i][args.begin:args.end],means[i][args.begin:args.end]-stds[i][args.begin:args.end],color=colors[i],alpha=0.1)
 plt.legend()
-plt.savefig("rewards.png")
+plt.savefig(os.path.join(args.dir, "rewards.png"))
