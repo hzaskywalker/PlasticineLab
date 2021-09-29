@@ -11,6 +11,7 @@
 *.avi
 # nohup output
 *.out
+*.txt
 # results
 **/rewards/**/*.np[zy]
 **/ious/**/*.np[zy]

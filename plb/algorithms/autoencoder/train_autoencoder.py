@@ -24,7 +24,10 @@ def train(model,optimizer,loss_fn,dataloader):
         optimizer.zero_grad()
         x = x.float().to(device)
         x_hat = model(x)
-        loss = loss_fn(x.permute(0,2,1),x_hat)
+        if args.loss == 'emd':
+            loss,_ = loss_fn(x.permute(0,2,1),x_hat)
+        else:
+            loss = loss_fn(x.permute(0,2,1),x_hat)
         loss.backward()
         optimizer.step()
         total_loss += float(loss)

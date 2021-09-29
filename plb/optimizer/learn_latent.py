@@ -97,16 +97,16 @@ class Solver:
                 env.set_grad()
             loss = env.loss.loss[None]
             return loss, env.get_state_grad()
-        x = torch.from_numpy(state[0]).double().cpu()
+        x = torch.from_numpy(state[0]).double().to(localDevice)
         x_hat = self.model(x.float())
-        loss_first,assignment = compute_emd(x, x_hat, 3000)
-        loss_first = None
+        loss_first,assignment = compute_emd(x, x_hat, 1000)
+        #loss_first = None
         x_hat_after = x_hat[assignment.detach().long()]
         x_hat = x_hat_after
         state_hat = copy.deepcopy(state)
         state_hat[0] = x_hat.cpu().double().detach().numpy()
         loss, (x_hat_grad,_) = forward(state_hat,targets,actions)
-        x_hat_grad = torch.from_numpy(x_hat_grad).clamp(-1,1).cpu()
+        x_hat_grad = torch.from_numpy(x_hat_grad).clamp(-1,1).to(localDevice)
         if not torch.isnan(x_hat_grad).any():
             return x_hat, x_hat_grad, loss_first, loss
         else:
@@ -119,6 +119,7 @@ def _update_network_mpi(model: torch.nn.Module, optimizer, state, gradient, loss
         state.backward(gradient, retain_graph=True)
         if use_loss:
             loss.backward()
+    
     if mpi.num_procs()>1: 
         mpi.avg_grads(model)
     if state is not None and gradient is not None:
@@ -179,7 +180,7 @@ def _intialize_model(taichiEnv: TaichiEnv, device: torch.device)->PCNAutoEncoder
     """
     model = PCNAutoEncoder(taichiEnv.n_particles, HIDDEN_LAYERS, LATENT_DIMS, FEAT_DMIS)
     model.load_state_dict(torch.load("pretrain_model/autoencoder/torus/whole.pth"))
-    model = model.cpu()
+    model = model.to(device)
     return model
 
 def squeeze_batch(state):
@@ -208,7 +209,7 @@ def learn_latent(
 
     # After MPI FORK
     mpi.fork(mpi.best_mpi_subprocess_num(batch_size, procPerGPU=2))
-    procLocalDevice = torch.device("cuda")
+    procLocalDevice = torch.device("cuda:1")
 
     dataloader = _loading_dataset()
     taichiEnv, T = _intialize_env(args.env_name, args.sdf_loss, loss_fn, args.density_loss,
@@ -230,6 +231,7 @@ def learn_latent(
     )
 
     procAvgLoss = [0.0] * epochs
+    total_batch = 0
     for i in range(epochs):
         batchCnt, efficientBatchCnt = 0, 0
         for stateMiniBatch, targetMiniBatch, actionMiniBatch, indexMiniBatch in dataloader:
@@ -268,7 +270,11 @@ def learn_latent(
 
             if mpi.proc_id() == 0:
                 mpi.msg(f"Batch:{batchCnt}, loss:{batchLoss}")
+                if total_batch == 10 or total_batch==50 or total_batch==1500:
+                    torch.save(model.state_dict(),f'pretrain_model/writer_{total_batch}_model.pth')
+                    torch.save(model.encoder.state_dict(),f'pretrain_model/writer_{total_batch}_encoder.pth')
             batchCnt += 1
+            total_batch += 1
         procAvgLoss[i] /= efficientBatchCnt
         mpi.msg(f"Epoch:{i}, process-local average loss:{procAvgLoss[i]}")
 
@@ -279,6 +285,6 @@ def learn_latent(
 
     if mpi.proc_id() == 0:
         # ONLY one proc can store the model
-        mpi.msg(f"Total global average loss:", mpi.avg(totalAverageLoss))
-        torch.save(model.state_dict(),"pretrain_model/rope_model.pth")
-        torch.save(model.encoder.state_dict(),"pretrain_model/rope_encoder.pth")
+        mpi.msg(f"Total global average loss:", totalAverageLoss)
+        torch.save(model.state_dict(),"pretrain_model/torus_model.pth")
+        torch.save(model.encoder.state_dict(),"pretrain_model/torus_encoder.pth")
