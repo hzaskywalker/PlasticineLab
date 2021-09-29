@@ -1,4 +1,5 @@
 import os
+import copy
 import imageio
 import taichi as ti
 import numpy as np
@@ -52,8 +53,8 @@ class SolverTorchNN:
         self.logger = logger
         self.data_dir = data_dir
         self.obs_type = 'x' if srl else 'vx'
-        # self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.device = 'cpu'
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        #self.device = 'cpu'
         if srl:
             print("Using State Representation Learning")
             encoder = LatentPolicyEncoder(
@@ -63,10 +64,10 @@ class SolverTorchNN:
                 hidden_dim = 256,
                 latent_dim = 1024,
                 primitive_dim = env.observation_space.shape[0] - 6*self.env.n_particles).to(self.device)
-            if model_name != '':
+            if model_name != '' and model_name != None:
                 print(f"Load model at{model_name}")
                 encoder.load_model(f'pretrain_model/{model_name}.pth')
-            mlp = MLP(self.encoder.output_dim,env.action_space.shape[0],
+            mlp = MLP(encoder.output_dim,env.action_space.shape[0],
                           hidden = self.cfg.nn.hidden, activation=self.cfg.nn.af).double().to(self.device)
             self.nn = nn.Sequential(encoder,mlp)
         else:
@@ -74,8 +75,6 @@ class SolverTorchNN:
             self.nn = MLP(env.observation_space.shape[0], env.action_space.shape[0],
                           hidden=self.cfg.nn.hidden, activation=self.cfg.nn.af).double().to(self.device)
         self.learning_rate = self.cfg.optim.lr
-        self.optimizer = torch.optim.Adam(
-            self.nn.parameters(), lr=self.learning_rate)
 
     def train(self, epoch):
         if self.logger is not None:
@@ -85,61 +84,59 @@ class SolverTorchNN:
         obs = self.env.reset()
         taichi_env.set_copy(False)
         taichi_env.set_torch_nn(self.nn)
+        total_reward = 0
         with ti.Tape(loss=taichi_env.loss.loss):
             for i in range(self.cfg.horizon):
                 action = taichi_env.act(obs,self.obs_type)  # Need to be wrapped
+                actions.append(action)
                 obs, reward, done, loss_info = self.env.step(action)
-
+                total_reward += reward
                 if self.logger is not None:
                     self.logger.step(
                         None, None, reward, None, i == self.cfg.horizon-1, loss_info)
         loss = taichi_env.loss.loss[None]
-
-        self.logger.summary_writer.writer.add_histogram(
-            'output layer grad', self.nn.linears[2].weight.grad, epoch)
+        #self.logger.summary_writer.writer.add_histogram(
+        #    'output layer grad', self.nn.linears[2].weight.grad, epoch)
 
         self.optimizer.step()
-        actions_np = [t.data.cpu().numpy() for t in actions]
-        return loss, actions_np
+        return loss, actions, total_reward
 
-    def solve(self, callbacks=()):
+    def solve(self, exp_name, callbacks=()):
         best_actions = None
         best_model = None
+        base_model = self.nn
         best_loss = 1e10
-        for iter in range(self.cfg.n_iters):
-            self.optimizer.zero_grad()
-            loss, actions = self.train(iter)
+        rewards = np.zeros((5,self.cfg.n_iters))
+        for r in range(5):
+            self.nn = copy.deepcopy(base_model)
+            self.optimizer = torch.optim.Adam(
+            self.nn.parameters(), lr=self.learning_rate)
+            print('========================')
+            print(f"==== Run {r} starts ====")
+            print(f"====== Total {self.cfg.n_iters} ======")
+            print('========================')
+            for iter in range(self.cfg.n_iters):
+                self.optimizer.zero_grad()
+                loss, actions, total_reward = self.train(iter)
+                rewards[r,iter] = total_reward
+                if loss < best_loss:
+                    best_loss = loss
+                    best_actions = actions.copy()
+                    best_model = self.nn.state_dict().copy()
 
-            if loss < best_loss:
-                best_loss = loss
-                best_actions = actions.copy()
-                best_model = self.nn.state_dict().copy()
-
-            for callback in callbacks:
-                callback(loss, actions)
+                for callback in callbacks:
+                    callback(loss, actions)
 
         torch.save(best_model, os.path.join(
             self.data_dir, 'model_weights.pth'))
+        if not os.path.exists('model_based_rewards'):
+            os.mkdir('model_based_rewards')    
+        np.save(f'model_based_rewards/{exp_name}.npy')
 
         self.env.reset()
         # self.logger.summary_writer.writer.add_graph(self.nn)
         self.logger.summary_writer.writer.close()
         return best_actions
-
-    def inference(self):
-        self.nn.load_state_dict(torch.load(
-            os.path.join(self.data_dir, 'model_weights.pth')))
-        self.nn.eval()
-        actions = []
-        obs = self.env.reset()
-        for i in range(self.cfg.horizon):
-            state_tensor = torch.as_tensor(obs).to(self.device)
-            action_var = self.nn(state_tensor)
-            actions.append(action_var)
-            action_np = action_var.data.cpu().clone().numpy()
-            obs, reward, done, loss_info = self.env.step(action_np)
-        actions_np = [t.data.cpu().numpy() for t in actions]
-        return actions_np
 
     @ classmethod
     def default_config(cls):
@@ -175,8 +172,7 @@ def solve_torch_nnv2(env, args):
                            softness=args.softness, horizon=T,
                            **{"optim.lr": args.lr, "nn.hidden": nn_hidden, "nn.af":nn_af})
 
-    actions = solver.solve()
-    # actions = solver.inference()
+    actions = solver.solve(args.exp_name)
 
     with imageio.get_writer(f"{path}/output.gif", mode="I") as writer:
         for idx, act in enumerate(actions):

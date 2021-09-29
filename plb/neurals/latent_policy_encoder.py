@@ -2,7 +2,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from .autoencoder import PCNEncoder
+from .autoencoder import PCNEncoder, MLP
+
+
 
 class LatentPolicyEncoder(nn.Module):
 	def __init__(self,
@@ -26,14 +28,16 @@ class LatentPolicyEncoder(nn.Module):
 		self.output_dim = self.latent_dim*2 + self.primitiveencoder.out_dim
 
 	def forward(self,obs):
+		device = next(self.pointencoder.parameters()).device
+		obs = torch.from_numpy(obs) if not torch.is_tensor(obs) else obs
 		if obs.ndim == 1:
-			state_current = torch.from_numpy(obs[:self.feat_dim*self.n_particles].reshape(-1,self.feat_dim)).float().to(device)
-			state_prev = torch.from_numpy(obs[self.feat_dim*self.n_particles:self.feat_dim*self.n_particles*2].reshape(-1,self.feat_dim)).float().to(device)
-			primitive_state = torch.from_numpy(obs[self.feat_dim*2*self.n_particles:]).float().to(device)
+			state_current = obs[:self.feat_dim*self.n_particles].reshape(-1,self.feat_dim).float().to(device)
+			state_prev = obs[self.feat_dim*self.n_particles:self.feat_dim*self.n_particles*2].reshape(-1,self.feat_dim).float().to(device)
+			primitive_state = obs[self.feat_dim*2*self.n_particles:].float().to(device)
 		else:
-			state_current = obs[:,:self.feat_dim*self.n_particles].reshape(obs.shape[0],self.feat_dim,-1)
-			state_prev = obs[:,self.feat_dim*self.n_particles:2*self.feat_dim*self.n_particles].reshape(obs.shape[0],self.feat_dim,-1)
-			primitive_state = obs[:,2*self.n_particles*self.feat_dim:]
+			state_current = obs[:,:self.feat_dim*self.n_particles].reshape(obs.shape[0],self.feat_dim,-1).float().to(device)
+			state_prev = obs[:,self.feat_dim*self.n_particles:2*self.feat_dim*self.n_particles].reshape(obs.shape[0],self.feat_dim,-1).float().to(device)
+			primitive_state = obs[:,2*self.n_particles*self.feat_dim:].float().to(device)
 		state_current_hidden = self.pointencoder(state_current).squeeze()
 		state_prev_hidden = self.pointencoder(state_prev).squeeze()
 		primitive_hidden = self.primitiveencoder(primitive_state).squeeze()
@@ -41,7 +45,7 @@ class LatentPolicyEncoder(nn.Module):
 			latent = torch.cat([primitive_hidden,state_current_hidden,state_prev_hidden],dim=0)
 		else:
 			latent = torch.cat([primitive_hidden,state_current_hidden,state_prev_hidden],dim=1)
-		return latent
+		return latent.double()
 	
 	def load_model(self,path):
 		self.pointencoder.load_state_dict(torch.load(path))

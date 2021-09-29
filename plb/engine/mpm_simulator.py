@@ -529,7 +529,7 @@ class MPMSimulator:
         action = self.nn(obs_tensor)
         # action, _ = self.nn(obs_tensor) # lstm
         self.torch_actions.append(action)
-        a[:] = action.detach().numpy()[:]
+        a[:] = action.detach().cpu().numpy()[:]
 
     @ti.complex_kernel_grad(act)
     def act_grad(self,obs,cur,a,obs_type='x'): 
@@ -543,7 +543,7 @@ class MPMSimulator:
         # nn.utils.clip_grad_norm_(clipped_actuation_grad, max_norm=1.0, norm_type=2)
         nn.utils.clip_grad_value_(clipped_actuation_grad, clip_value=1.0)
 
-        action.backward(clipped_actuation_grad)
+        action.backward(clipped_actuation_grad.cuda())
         # Should be a function which calls multiple kernel function to set gradient
         state_grad = self.torch_obs.pop().grad
         arg1_grad,arg2_grad = self.formulate_grad(state_grad)

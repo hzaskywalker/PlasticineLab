@@ -138,6 +138,7 @@ class TaichiEnv:
     
     def set_torch_nn(self,nn):
         self.simulator.set_nn(nn)
+
     # obs will be an numpy array
     # obs will be the last step cur
     def act(self,obs,obs_type='x'):
