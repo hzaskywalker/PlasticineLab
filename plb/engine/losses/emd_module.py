@@ -62,7 +62,7 @@ def compute_emd(gt,output,iters):
     if not isinstance(gt,torch.Tensor):
         gt = torch.from_numpy(gt).float().cuda()
     s = output.shape
-    batch_size = gt.shape[0] if gt.ndim == 3 else 1
+    batch_size = s.shape[0] if s.ndim == 3 else 1
     output = output.view(batch_size,s[-2],s[-1])
     gt = gt.view(batch_size,s[-2],s[-1])
     emd_loss,assignment = emd_function(gt,output,0.02,iters)

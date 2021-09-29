@@ -12,7 +12,6 @@ if os.getenv("IN_MPI") is not None:
     os.environ['CUDA_VISIBLE_DEVICES'] = f'{cudaCore}'
     mpi_tools.msg(f"DEBUG GPU CORE>>>>>>> cuda:{cudaCore}")
     
-
 from plb.engine import taichi_env
 from plb.envs import make
 from plb.algorithms.logger import Logger
@@ -21,13 +20,14 @@ from plb.algorithms.ppo.run_ppo import train_ppo
 from plb.algorithms.TD3.run_td3 import train_td3
 from plb.optimizer.solver import solve_action
 from plb.optimizer.solver_nn import solve_nn
+from plb.optimizer.solver_torch_nnv2 import solve_torch_nnv2
 from plb.optimizer.learn_latent import learn_latent
 from plb.optimizer.focal_learn_latent import learn_latent_focal
 from plb.optimizer.human import human_control
 from plb.engine.losses import Loss, StateLoss, ChamferLoss, EMDLoss
 
 RL_ALGOS = ['sac', 'td3', 'ppo']
-DIFF_ALGOS = ['action', 'nn',]
+DIFF_ALGOS = ['action', 'nn', 'torch_nn']
 
 def set_random_seed(seed):
     random.seed(seed)
@@ -35,8 +35,9 @@ def set_random_seed(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
+
 def get_args():
-    parser=argparse.ArgumentParser()
+    parser = argparse.ArgumentParser()
     parser.add_argument("--algo", type=str, default=DIFF_ALGOS + RL_ALGOS)
     parser.add_argument("--env_name", type=str, default="Move-v1")
     parser.add_argument("--path", type=str, default='./tmp')
@@ -59,9 +60,10 @@ def get_args():
     parser.add_argument("--model_name",type=str,default=None)
     parser.add_argument("--horizon",type=int,default=None)
 
-    args=parser.parse_args()
+    args = parser.parse_args()
 
     return args
+
 
 def main():
     args = get_args()
@@ -103,10 +105,13 @@ def main():
             train_td3(env, args.path, logger, args)
         elif args.algo == 'nn':
             solve_nn(env, args.path, logger, args)
+        elif args.algo == 'torch_nn':
+            solve_torch_nnv2(env, args)
         elif args.algo == 'human':
             human_control(env,args.path,logger,args)
         else:
             raise NotImplementedError
+
 
 if __name__ == '__main__':
     main()

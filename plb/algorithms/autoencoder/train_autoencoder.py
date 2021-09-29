@@ -1,5 +1,6 @@
 import argparse
 from functools import partial
+from types import FunctionType
 import torch
 from torch.utils.data import DataLoader
 
@@ -34,53 +35,71 @@ def train(model,optimizer,loss_fn,dataloader):
         batch_cnt += 1
     return total_loss / batch_cnt
 
-parser = argparse.ArgumentParser()
 
-parser.add_argument("--loss",type=str,default='chamfer')
-parser.add_argument("--iters",type=int,default=100)
-parser.add_argument("--saved_model",type=str,default=None)
-parser.add_argument("--exp_name",type=str,default=None,required=True)
-parser.add_argument("--dataset",type=str,default='chopsticks')
-parser.add_argument("--freeze_encoder",action='store_true',default=False)
+def main(
+    loss: str,
+    iters: int,
+    savedModel: str,
+    expName: str,
+    dataset: str,
+    freezeEncoder: bool, 
+    loggerFunc: FunctionType = print
+):
 
-args = parser.parse_args()
-assert(args.dataset in ['chopsticks','rope','torus','writer'])
-dataset = PointCloudAEDataset('data/{}.npz'.format(args.dataset))
-dataloader = DataLoader(dataset,batch_size=20)
-model = PCNAutoEncoder(dataset.n_particles,latent_dim=1024,hidden_dim=1024)
+    assert(dataset in ['chopsticks','rope','torus','writer'])
+    dataset = PointCloudAEDataset('data/{}.npz'.format(dataset))
+    dataloader = DataLoader(dataset,batch_size=20)
+    model = PCNAutoEncoder(dataset.n_particles,latent_dim=1024,hidden_dim=1024)
+    if freezeEncoder:
+        for p in model.encoder.parameters():
+            p.requires_grad = False
 
-if args.freeze_encoder:
-    for p in model.encoder.parameters():
-        p.requires_grad = False
+    if savedModel != None:
+        if savedModel.endswith('encoder'):
+            model.encoder.load_state_dict(torch.load('pretrain_model/{}.pth'.format(savedModel)))
+        elif savedModel.endswith('decoder'):
+            model.decoder.load_state_dict(torch.load('pretrain_model/{}.pth'.format(savedModel)))
+        else:
+            model.load_state_dict(torch.load('pretrain_model/{}.pth'.format(savedModel)))
+    model = model.to(device)
+    optimizer = torch.optim.Adam(model.parameters(),lr=2e-5)
 
-if args.saved_model != None:
-    if args.saved_model.endswith('encoder'):
-        model.encoder.load_state_dict(torch.load('pretrain_model/{}.pth'.format(args.saved_model)))
-    elif args.saved_model.endswith('decoder'):
-        model.decoder.load_state_dict(torch.load('pretrain_model/{}.pth'.format(args.saved_model)))
+    if loss == 'chamfer':
+        chamfer_module = ChamferDistance()
+        loss_fn = partial(chamfer_loss,chamfer_module=chamfer_module)
     else:
-        print("Whole Model Loaded")
-        model.load_state_dict(torch.load('pretrain_model/{}.pth'.format(args.saved_model)))
-model = model.to(device)
-optimizer = torch.optim.Adam(model.parameters(),lr=2e-5)
+        loss_fn = partial(compute_emd,iters=100)
 
-if args.loss == 'chamfer':
-    chamfer_module = ChamferDistance()
-    loss_fn = partial(chamfer_loss,chamfer_module=chamfer_module)
-else:
-    loss_fn = partial(compute_emd,iters=100)
+    try:    
+        for i in range(iters):
+            epoch_loss = train(model,optimizer,loss_fn,dataloader)
+            loggerFunc("Epoch {} Loss: {}".format(i,epoch_loss))
+    except KeyboardInterrupt:
+        print("Training is interrupted!")
+    finally:
+        torch.save(model.state_dict(),'pretrain_model/{}_whole.pth'.format(expName))
+        torch.save(model.encoder.state_dict(),'pretrain_model/{}_encoder.pth'.format(expName))
+        print("Model Has been saved !")
 
-try:    
-    for i in range(args.iters):
-        epoch_loss = train(model,optimizer,loss_fn,dataloader)
-        print("Epoch {} Loss: {}".format(i,epoch_loss))
-except KeyboardInterrupt:
-    print("Training is interrupted!")
-finally:
-    torch.save(model.state_dict(),'pretrain_model/{}_whole.pth'.format(args.exp_name))
-    torch.save(model.encoder.state_dict(),'pretrain_model/{}_encoder.pth'.format(args.exp_name))
-    print("Model Has been saved !")
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
 
+    parser.add_argument("--loss",type=str,default='chamfer')
+    parser.add_argument("--iters",type=int,default=100)
+    parser.add_argument("--saved_model",type=str,default=None)
+    parser.add_argument("--exp_name",type=str,default=None,required=True)
+    parser.add_argument("--dataset",type=str,default='chopsticks')
+    parser.add_argument("--freeze_encoder",action='store_true',default=False)
 
+    args = parser.parse_args()
+
+    main(
+        args.loss,
+        args.iters,
+        args.saved_model,
+        args.exp_name,
+        args.dataset,
+        args.freeze_encoder
+    )
 
         

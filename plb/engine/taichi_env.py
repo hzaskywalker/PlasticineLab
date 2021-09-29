@@ -8,6 +8,7 @@ from .losses import Loss ,StateLoss, ChamferLoss, EMDLoss
 def init_taichi():
     ti.init(arch=ti.gpu, debug=False, fast_math=True)
 
+
 @ti.data_oriented
 class TaichiEnv:
     def __init__(self, cfg, loss_fn=Loss,nn=False, loss=True):
@@ -44,7 +45,7 @@ class TaichiEnv:
         self._is_copy = True
 
     def set_copy(self, is_copy: bool):
-        self._is_copy= is_copy
+        self._is_copy = is_copy
 
     def initialize(self):
         # initialize all taichi variable according to configurations..
@@ -79,6 +80,21 @@ class TaichiEnv:
             plt.show()
         else:
             return img
+
+    def get_obs(self, n_observed_particles):
+        if self._is_copy:
+            t = 0
+        else:
+            t = self.simulator.cur
+
+        x = self.simulator.get_x(t)
+        v = self.simulator.get_v(t)
+        outs = []
+        for i in self.primitives:
+            outs.append(i.get_state(t, needs_grad=False))
+        s = np.concatenate(outs)
+        step_size = len(x) // n_observed_particles
+        return np.concatenate((np.concatenate((x[::step_size], v[::step_size]), axis=-1).reshape(-1), s.reshape(-1)))
 
     def step(self, action=None):
         if action is not None:
@@ -119,6 +135,16 @@ class TaichiEnv:
         if self.loss:
             self.loss.reset()
             self.loss.clear()
+    
+    def set_torch_nn(self,nn):
+        self.simulator.set_nn(nn)
+
+    # obs will be an numpy array
+    # obs will be the last step cur
+    def act(self,obs,obs_type='x'):
+        action = np.zeros(self.simulator.primitives.action_dims[-1])
+        self.simulator.act(obs,self.simulator.cur,action,obs_type)
+        return action
 
     def set_target(self,target):
         self.loss.set_target(target)
