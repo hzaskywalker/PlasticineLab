@@ -24,10 +24,10 @@
 #### All experiment result are rendered from policy trained with MBPO
 - Picking up a rope
 
-![image](https://github.com/Ericcsr/DiffSRL/tree/mpi_dev_eric/Images/DiffSRL-chopsticks.gif)
+![image](Images/DiffSRL-chopsticks.gif)
 
 - Wrapping a rope around a cylinder
 
-![image](https://github.com/Ericcsr/DiffSRL/tree/mpi_dev_eric/Images/DiffSRL-rope.gif)
+![image](Images/DiffSRL-rope.gif)
 
 ### TODO: Add more demos
