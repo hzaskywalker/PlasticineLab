@@ -23,9 +23,9 @@
 ## Experiment result
 #### All experiment result are rendered from policy trained with MBPO
 - Picking up a rope
-![image](../images/chopsticks_srl.gif)
+![image](../Images/chopsticks_srl.gif)
 
 - Wrapping a rope around a cylinder
-![image](../images/rope_srl.gif)
+![image](../Images/rope_srl.gif)
 
 ### TODO: Add more demos
