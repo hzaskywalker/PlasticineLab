@@ -33,6 +33,7 @@ def train(model,optimizer,loss_fn,dataloader):
         optimizer.step()
         total_loss += float(loss)
         batch_cnt += 1
+        #print(f"Batch:{batch_cnt}")
     return total_loss / batch_cnt
 
 
@@ -46,7 +47,7 @@ def main(
     loggerFunc: FunctionType = print
 ):
 
-    assert(dataset in ['chopsticks','rope','torus','writer'])
+    assert(dataset in ['old_dataset/chopsticks','old_dataset/rope','torus-v1','writer-v1'])
     dataset = PointCloudAEDataset('data/{}.npz'.format(dataset))
     dataloader = DataLoader(dataset,batch_size=20)
     model = PCNAutoEncoder(dataset.n_particles,latent_dim=1024,hidden_dim=1024)
@@ -57,10 +58,13 @@ def main(
     if savedModel != None:
         if savedModel.endswith('encoder'):
             model.encoder.load_state_dict(torch.load('pretrain_model/{}.pth'.format(savedModel)))
+            print("Loaded Encoder!!")
         elif savedModel.endswith('decoder'):
             model.decoder.load_state_dict(torch.load('pretrain_model/{}.pth'.format(savedModel)))
+            print("Loaded Decoder!!")
         else:
             model.load_state_dict(torch.load('pretrain_model/{}.pth'.format(savedModel)))
+            print("Loaded Full model!!")
     model = model.to(device)
     optimizer = torch.optim.Adam(model.parameters(),lr=2e-5)
 

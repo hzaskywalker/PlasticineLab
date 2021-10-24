@@ -179,26 +179,10 @@ class TD3(object):
 		self.n_particles = n_particles
 		self.n_layers = n_layers
 		self.primitive_dim = self.state_dim - 6*self.n_particles
-		if self.enable_latent:
-			self.latent_encoder = SRLPCNLayer(n_particles=self.n_particles,
-										      n_layers = self.n_layers,
-										      feature_dim = 3,
-										      hidden_dim = 256,
-										      latent_dim = 1024,
-										      primitive_dim = self.primitive_dim).to(device)
-			assert(model_name!=None)
-			self.latent_encoder.load_model('pretrain_model/{}.pth'.format(model_name))
-			print("Enable Latent!!!",self.latent_encoder.output_dim)
-			self.state_dim = self.latent_encoder.output_dim
-		self.actor = Actor(self.state_dim, action_dim, max_action).to(device)
-		self.actor_target = copy.deepcopy(self.actor)
-		self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=3e-4)
-
-		self.critic = Critic(self.state_dim, action_dim).to(device)
-		self.critic_target = copy.deepcopy(self.critic)
-		self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=3e-4)
-
+		self.model_name = model_name
+		self.action_dim = action_dim
 		self.max_action = max_action
+		self.reset_parameters()
 		self.discount = discount
 		self.tau = tau
 		self.policy_noise = policy_noise
@@ -279,4 +263,23 @@ class TD3(object):
 			return self.latent_encoder(state).detach().cpu().numpy()
 		else:
 			return state
-		
+
+	def reset_parameters(self):
+		if self.enable_latent:
+			self.latent_encoder = SRLPCNLayer(n_particles=self.n_particles,
+										      n_layers = self.n_layers,
+										      feature_dim = 3,
+										      hidden_dim = 256,
+										      latent_dim = 1024,
+										      primitive_dim = self.primitive_dim).to(device)
+			assert(self.model_name!=None)
+			self.latent_encoder.load_model('pretrain_model/{}.pth'.format(self.model_name))
+			print("Enable Latent!!!",self.latent_encoder.output_dim)
+			self.state_dim = self.latent_encoder.output_dim
+		self.actor = Actor(self.state_dim, self.action_dim, self.max_action).to(device)
+		self.actor_target = copy.deepcopy(self.actor)
+		self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=3e-4)
+
+		self.critic = Critic(self.state_dim, self.action_dim).to(device)
+		self.critic_target = copy.deepcopy(self.critic)
+		self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=3e-4)

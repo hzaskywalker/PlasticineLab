@@ -1,0 +1,10 @@
+python -m plb.algorithms.solve --env_name Rope-v1 --algo td3 --srl --model_name autoencoder/rope/encoder --exp_name td3_ae_rope_1 --seed 2021
+python -m plb.algorithms.solve --env_name Rope-v1 --algo td3 --srl --model_name autoencoder/rope/encoder --exp_name td3_ae_rope_2 --seed 2022
+python -m plb.algorithms.solve --env_name Rope-v1 --algo td3 --srl --model_name autoencoder/rope/encoder --exp_name td3_ae_rope_3 --seed 2023
+python -m plb.algorithms.solve --env_name Rope-v1 --algo td3 --srl --model_name autoencoder/rope/encoder --exp_name td3_ae_rope_4 --seed 2024
+python -m plb.algorithms.solve --env_name Rope-v1 --algo td3 --srl --model_name autoencoder/rope/encoder --exp_name td3_ae_rope_5 --seed 2025
+python -m plb.algorithms.solve --env_name Rope-v1 --algo td3 --srl --model_name autoencoder/rope/encoder --exp_name td3_ae_rope_6 --seed 2026
+python -m plb.algorithms.solve --env_name Rope-v1 --algo td3 --srl --model_name autoencoder/rope/encoder --exp_name td3_ae_rope_7 --seed 2027
+python -m plb.algorithms.solve --env_name Rope-v1 --algo td3 --srl --model_name autoencoder/rope/encoder --exp_name td3_ae_rope_8 --seed 2028
+python -m plb.algorithms.solve --env_name Rope-v1 --algo td3 --srl --model_name autoencoder/rope/encoder --exp_name td3_ae_rope_9 --seed 2029
+python -m plb.algorithms.solve --env_name Rope-v1 --algo td3 --srl --model_name autoencoder/rope/encoder --exp_name td3_ae_rope_0 --seed 2020

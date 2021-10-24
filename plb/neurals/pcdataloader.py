@@ -113,11 +113,11 @@ class RopeDataset(PointCloudDataset):
 
 class TorusDataset(PointCloudDataset):
     def __init__(self):
-        super(TorusDataset,self).__init__('data/torus.npz')
+        super(TorusDataset,self).__init__('data/torus-v1.npz')
 
 class WriterDataset(PointCloudDataset):
     def __init__(self):
-        super(WriterDataset,self).__init__("data/writer.npz")
+        super(WriterDataset,self).__init__("data/writer-v1.npz")
 
 
 class CFMDataset(Dataset):

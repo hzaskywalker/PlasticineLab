@@ -107,7 +107,7 @@ class TaichiEnv:
             self.loss.clear()
             return self.loss.compute_loss(0)
         else:
-            if taichi_loss==False:
+            if isinstance(self.loss,ChamferLoss) or isinstance(self.loss,EMDLoss):
                 return self.loss.compute_loss(self.simulator.cur,copy_grad,decay=decay)
             else:
                 return self.loss.compute_loss(self.simulator.cur)
@@ -141,9 +141,9 @@ class TaichiEnv:
 
     # obs will be an numpy array
     # obs will be the last step cur
-    def act(self,obs,obs_type='x'):
+    def act(self,obs,t,obs_type='x'):
         action = np.zeros(self.simulator.primitives.action_dims[-1])
-        self.simulator.act(obs,self.simulator.cur,action,obs_type)
+        self.simulator.act(obs,t,self.simulator.cur,action,obs_type)
         return action
 
     def set_target(self,target):

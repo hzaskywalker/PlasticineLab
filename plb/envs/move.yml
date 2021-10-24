@@ -1,6 +1,6 @@
 SIMULATOR:
   E: 5000.
-  n_particles: 10000
+  n_particles: 8192
   yield_stress: 200.
 SHAPES:
   - shape: sphere

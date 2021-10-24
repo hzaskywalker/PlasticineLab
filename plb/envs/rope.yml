@@ -1,13 +1,13 @@
 SIMULATOR:
-  yield_stress: 50.
-  ground_friction: 0.3
-  n_particles: 8192
+  yield_stress: 200.
+  ground_friction: 0.05
+  n_particles: 10000
 SHAPES:
   - shape: box
     width: (0.6, 0.06, 0.06)
     init_pos: (0.5, 0.03, 0.73)
     color: (((0 << 8) + 150) << 8)
-    n_particles: 8192
+    n_particles: 10000
 PRIMITIVES:
   - shape: Sphere
     radius: 0.03
@@ -30,7 +30,7 @@ PRIMITIVES:
     r: 0.2
     init_pos: (0.3919300650726247, 0., 0.4990770359432596)
     color: (0.3, 0.3, 0.3)
-    friction: 0.9
+    friction: 0.
 ENV:
   loss:
     target_path: envs/data/Rope3D-v1.npy

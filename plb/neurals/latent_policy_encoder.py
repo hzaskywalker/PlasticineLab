@@ -27,7 +27,7 @@ class LatentPolicyEncoder(nn.Module):
 		self.primitiveencoder = MLP(num_layers=self.n_layers,in_dim=self.primitive_dim,hidden_dim=256,out_dim=10)
 		self.output_dim = self.latent_dim*2 + self.primitiveencoder.out_dim
 
-	def forward(self,obs):
+	def forward(self,obs,t):
 		device = next(self.pointencoder.parameters()).device
 		obs = torch.from_numpy(obs) if not torch.is_tensor(obs) else obs
 		if obs.ndim == 1:
@@ -45,7 +45,10 @@ class LatentPolicyEncoder(nn.Module):
 			latent = torch.cat([primitive_hidden,state_current_hidden,state_prev_hidden],dim=0)
 		else:
 			latent = torch.cat([primitive_hidden,state_current_hidden,state_prev_hidden],dim=1)
-		return latent.double()
+		return latent.double(),t
 	
 	def load_model(self,path):
 		self.pointencoder.load_state_dict(torch.load(path))
+
+	def set_n_observables(self,n):
+		self.n_obs = n

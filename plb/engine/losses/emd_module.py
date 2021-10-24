@@ -62,9 +62,24 @@ def compute_emd(gt,output,iters):
     if not isinstance(gt,torch.Tensor):
         gt = torch.from_numpy(gt).float().cuda()
     s = output.shape
-    batch_size = s.shape[0] if s.ndim == 3 else 1
+    batch_size = gt.shape[0] if gt.ndim == 3 else 1
     output = output.view(batch_size,s[-2],s[-1])
     gt = gt.view(batch_size,s[-2],s[-1])
-    emd_loss,assignment = emd_function(gt,output,0.02,iters)
+    emd_loss,assignment = emd_function(output,gt,0.004,iters)
     loss = torch.sqrt(emd_loss).mean()*10
-    return loss,assignment[0]
+    return loss,assignment.squeeze()
+
+def solve_icp(origin,target,iters):
+    """
+    Origin can be permuted to reach target
+    """
+    if not isinstance(origin,torch.Tensor):
+        origin = torch.from_numpy(origin).float().cuda()
+    if not isinstance(target,torch.Tensor):
+        target = torch.from_numpy(target).float().cuda()
+    s = target.shape
+    batch_size = target.shape[0] if target.ndim == 3 else 1
+    origin = origin.view(batch_size,s[-2],s[-1])
+    target = target.view(batch_size,s[-2],s[-1])
+    _,assignment = emd_function(target,origin,0.004,iters)
+    return assignment.squeeze().detach().long()

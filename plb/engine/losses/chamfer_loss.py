@@ -46,7 +46,6 @@ class ChamferLoss(nn.Module):
         s = output.shape
         dist1,dist2,_,_ = self.loss_fn(self.target.view(1,s[0],s[1]), output.view(1,s[0],s[1]))
         loss = (torch.sqrt(dist1).mean(1)+torch.sqrt(dist2).mean(1))/2
-        #loss = self.loss_fn(self.target.view(1,s[0],s[1]), output.view(1,s[0],s[1]))
         loss = (loss.mean()*10)/(decay**(cur//self.sim.substeps))
         self.loss[None] = float(loss)
         loss.backward()

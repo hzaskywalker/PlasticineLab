@@ -60,7 +60,6 @@ class Capsule(Primitive):
         cfg.r = 0.03
         return cfg
 
-
 class RollingPin(Capsule):
     # rollingpin's capsule...
     @ti.kernel
@@ -78,7 +77,6 @@ class RollingPin(Capsule):
         )
         #print(self.rotation[f+1], self.rotation[f+1].dot(self.rotation[f+1]))
         self.position[f+1] = max(min(self.position[f] + x_dir, self.xyz_limit[1]), self.xyz_limit[0])
-
 
 class Chopsticks(Capsule):
     state_dim = 8
@@ -153,7 +151,6 @@ class Chopsticks(Capsule):
         cfg.init_gap = 0.06
         return cfg
 
-
 class Cylinder(Primitive):
     def __init__(self, **kwargs):
         super(Cylinder, self).__init__(**kwargs)
@@ -189,7 +186,6 @@ class Cylinder(Primitive):
         cfg.r = 0.1
         return cfg
 
-
 class Torus(Primitive):
     def __init__(self, **kwargs):
         super(Torus, self).__init__(**kwargs)
@@ -218,7 +214,6 @@ class Torus(Primitive):
         cfg.tx = 0.2
         cfg.ty = 0.1
         return cfg
-
 
 class Box(Primitive):
     def __init__(self, **kwargs):
@@ -255,9 +250,6 @@ class Box(Primitive):
         cfg = Primitive.default_config()
         cfg.size = (0.1, 0.1, 0.1)
         return cfg
-
-
-
 
 class Primitives:
     def __init__(self, cfgs, max_timesteps=1024):

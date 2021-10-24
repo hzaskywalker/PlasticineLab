@@ -1,4 +1,5 @@
 from .solver import *
+import imageio
 
 class SolverNN:
     def __init__(self, env: TaichiEnv, logger, cfg=None, **kwargs):
@@ -116,8 +117,10 @@ def solve_nn(env, path, logger, args):
     os.makedirs(path, exist_ok=True)
     taichi_env.set_copy(True)
 
-    for idx in range(50):
-        nn.set_action(0, taichi_env.simulator.substeps)
-        taichi_env.step(None)
-        img = taichi_env.render(mode='rgb_array')
-        cv2.imwrite(f"{path}/{idx:04d}.png", img)
+    with imageio.get_writer(f"{path}/video.gif", mode="I") as writer:
+        for idx in range(50):
+            nn.set_action(0, taichi_env.simulator.substeps)
+            taichi_env.step(None)
+            img = taichi_env.render(mode='rgb_array')
+            cv2.imwrite(f"{path}/{idx:04d}.png", img)
+            writer.append_data(img)

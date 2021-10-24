@@ -39,7 +39,7 @@ _C.SHAPES = list()
 _C.RENDERER = RENDERER = CN()
 RENDERER.spp = 50
 RENDERER.max_ray_depth = 2
-RENDERER.image_res = (256, 256)
+RENDERER.image_res = (512, 512)
 RENDERER.voxel_res = (168, 168, 168)
 RENDERER.target_res = (64, 64, 64)
 
@@ -62,7 +62,7 @@ RENDERER.max_num_particles = 1000000
 _C.ENV = ENV = CN()
 
 loss = ENV.loss = CN()
-loss.soft_contact = False
+loss.soft_contact = True
 loss_weight = loss.weight = CN()
 loss_weight.sdf = 10
 loss_weight.density = 10

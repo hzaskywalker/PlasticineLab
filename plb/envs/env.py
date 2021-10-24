@@ -12,7 +12,7 @@ PATH = os.path.dirname(os.path.abspath(__file__))
 
 
 class PlasticineEnv(gym.Env):
-    def __init__(self, cfg_path, loss_fn,version, nn=False, full_obs=False):
+    def __init__(self, cfg_path, loss_fn,version, num_observable=None, nn=False, full_obs=False):
         from ..engine.taichi_env import TaichiEnv
         self.cfg_path = cfg_path
         cfg = self.load_varaints(cfg_path, version)
@@ -22,10 +22,14 @@ class PlasticineEnv(gym.Env):
         self.taichi_env.set_copy(True)
         self._init_state = self.taichi_env.get_state()
         self.full_obs = full_obs
-        if self.full_obs:
+        if self.full_obs and num_observable==None:
+            print("Using Full Observation")
             self._n_observed_particles = self.taichi_env.n_particles
-        else:
+        elif num_observable == None:
             self._n_observed_particles = self.cfg.n_observed_particles
+        else:
+            print("Use Num Observable")
+            self._n_observed_particles = num_observable
         self.n_particles = self._n_observed_particles
         self.taichi_env.simulator.set_obs_num(self._n_observed_particles)
 
@@ -37,7 +41,7 @@ class PlasticineEnv(gym.Env):
     def reset(self,obs='x'):
         self.taichi_env.set_state(**self._init_state)
         self._recorded_actions = []
-        o = self._get_vx() if obs =='vx' else self._get_x()
+        o = self._get_x()
         return o
 
     def _get_obs(self):
@@ -63,7 +67,10 @@ class PlasticineEnv(gym.Env):
             outs.append(i.get_state(t))
         s = np.concatenate(outs)
         step_size = len(x_current) // self._n_observed_particles
-        ret = np.concatenate((np.concatenate((x_current[::step_size], x_prev[::step_size]), axis=0).reshape(-1), s.reshape(-1)))
+        x_current = x_current[::step_size]
+        x_prev = x_prev[::step_size]
+        #permute = np.random.permutation(len(x_current))
+        ret = np.concatenate((np.concatenate((x_current, x_prev), axis=0).reshape(-1), s.reshape(-1)))
         return ret
 
     def step(self, action):
@@ -71,7 +78,10 @@ class PlasticineEnv(gym.Env):
         loss_info = self.taichi_env.compute_loss(taichi_loss=True)
 
         self._recorded_actions.append(action)
-        obs = self._get_vx() if not self.full_obs else self._get_x()
+        #obs = self._get_vx() if not self.full_obs else self._get_x()
+        #print(self.taichi_env.simulator.cur)
+        obs = self._get_x(self.taichi_env.simulator.cur)
+        #obs = self._get_x()
         r = loss_info['reward']
         if np.isnan(obs).any() or np.isnan(r):
             if np.isnan(r):

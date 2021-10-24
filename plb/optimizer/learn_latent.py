@@ -14,7 +14,7 @@ from .. import mpi
 from ..config.utils import make_cls_config
 from ..engine import taichi_env
 from ..engine.losses import compute_emd
-from ..engine.losses import state_loss, emd_loss, chamfer_loss, loss
+from ..engine.losses import state_loss, emd_loss, chamfer_loss, loss, solve_icp
 from ..engine.taichi_env import TaichiEnv
 from ..envs import make
 from ..neurals.autoencoder import PCNAutoEncoder
@@ -99,19 +99,17 @@ class Solver:
             return loss, env.get_state_grad()
         x = torch.from_numpy(state[0]).double().to(localDevice)
         x_hat = self.model(x.float())
-        loss_first,assignment = compute_emd(x, x_hat, 1000)
-        #loss_first = None
-        x_hat_after = x_hat[assignment.detach().long()]
-        x_hat = x_hat_after
+        assignment = solve_icp(x_hat, x, 3000)
+        x_hat = x_hat[assignment]
         state_hat = copy.deepcopy(state)
         state_hat[0] = x_hat.cpu().double().detach().numpy()
         loss, (x_hat_grad,_) = forward(state_hat,targets,actions)
         x_hat_grad = torch.from_numpy(x_hat_grad).clamp(-1,1).to(localDevice)
         if not torch.isnan(x_hat_grad).any():
-            return x_hat, x_hat_grad, loss_first, loss
+            return x_hat, x_hat_grad, 0, loss
         else:
             mpi.msg("NAN Detected")
-            return None, None, loss_first, loss
+            return None, None, 0, loss
                     
 def _update_network_mpi(model: torch.nn.Module, optimizer, state, gradient, loss, use_loss=True):
     if state is not None and gradient is not None:
@@ -126,15 +124,19 @@ def _update_network_mpi(model: torch.nn.Module, optimizer, state, gradient, loss
         optimizer.step()
 
 # Need to create specific dataloader for such task
-def _loading_dataset()->DataLoader:
+def _loading_dataset(env_name)->DataLoader:
     """ Load data to memory
 
     :return: a dataloader of ChopSticksDataset
     """
-    #dataset = ChopSticksDataset()
-    #dataset = RopeDataset()
-    #dataset = WriterDataset()
-    dataset = TorusDataset()
+    if env_name.startswith("Chopsticks"):
+        dataset = ChopSticksDataset()
+    elif env_name.startswith("Rope"):
+        dataset = RopeDataset()
+    elif env_name.startswith("Writer"):
+        dataset = WriterDataset()
+    elif env_name.startswith("Torus"):
+        dataset = TorusDataset()
 
     dataloader = DataLoader(dataset,batch_size = mpi.num_procs())
     return dataloader
@@ -171,7 +173,7 @@ def _intialize_env(
     T = env._max_episode_steps
     return env.unwrapped.taichi_env, T
 
-def _intialize_model(taichiEnv: TaichiEnv, device: torch.device)->PCNAutoEncoder:
+def _intialize_model(taichiEnv: TaichiEnv, device: torch.device,model_name: str)->PCNAutoEncoder:
     """ Intialize the model from a given TaichiEnv onto a certain device
 
     :param taichiEnv: the environment
@@ -179,7 +181,7 @@ def _intialize_model(taichiEnv: TaichiEnv, device: torch.device)->PCNAutoEncoder
     :return: the intialized encoding model
     """
     model = PCNAutoEncoder(taichiEnv.n_particles, HIDDEN_LAYERS, LATENT_DIMS, FEAT_DMIS)
-    model.load_state_dict(torch.load("pretrain_model/autoencoder/torus/whole.pth"))
+    model.load_state_dict(torch.load(f"pretrain_model/{model_name}.pth"))
     model = model.to(device)
     return model
 
@@ -205,16 +207,16 @@ def learn_latent(
     """
     # before MPI FORK: intialization & data loading
     os.makedirs(args.path, exist_ok=True)
-    epochs, batchCnt, batch_size = 10, 0, args.batch_size, 
+    epochs, batchCnt, batch_size = 5, 0, args.batch_size, 
 
     # After MPI FORK
     mpi.fork(mpi.best_mpi_subprocess_num(batch_size, procPerGPU=2))
     procLocalDevice = torch.device("cuda:1")
 
-    dataloader = _loading_dataset()
+    dataloader = _loading_dataset(args.env_name)
     taichiEnv, T = _intialize_env(args.env_name, args.sdf_loss, loss_fn, args.density_loss,
                                   args.contact_loss, args.srl, args.soft_contact_loss, args.seed)
-    model = _intialize_model(taichiEnv, procLocalDevice)
+    model = _intialize_model(taichiEnv, procLocalDevice, args.model_name)
     optimizer = torch.optim.Rprop(model.parameters(), lr=args.lr)
     mpi.msg(f"TaichiEnv Number of Particles:{taichiEnv.n_particles}")
 
@@ -270,9 +272,9 @@ def learn_latent(
 
             if mpi.proc_id() == 0:
                 mpi.msg(f"Batch:{batchCnt}, loss:{batchLoss}")
-                if total_batch == 10 or total_batch==50 or total_batch==1500:
-                    torch.save(model.state_dict(),f'pretrain_model/writer_{total_batch}_model.pth')
-                    torch.save(model.encoder.state_dict(),f'pretrain_model/writer_{total_batch}_encoder.pth')
+                if total_batch == 5 or total_batch==10 or total_batch==1000:
+                    torch.save(model.state_dict(),f'pretrain_model/{args.exp_name}_{total_batch}_model.pth')
+                    torch.save(model.encoder.state_dict(),f'pretrain_model/{args.exp_name}_{total_batch}_encoder.pth')
             batchCnt += 1
             total_batch += 1
         procAvgLoss[i] /= efficientBatchCnt
@@ -286,5 +288,5 @@ def learn_latent(
     if mpi.proc_id() == 0:
         # ONLY one proc can store the model
         mpi.msg(f"Total global average loss:", totalAverageLoss)
-        torch.save(model.state_dict(),"pretrain_model/torus_model.pth")
-        torch.save(model.encoder.state_dict(),"pretrain_model/torus_encoder.pth")
+        torch.save(model.state_dict(),f"pretrain_model/{args.exp_name}_model.pth")
+        torch.save(model.encoder.state_dict(),f"pretrain_model/{args.exp_name}_encoder.pth")

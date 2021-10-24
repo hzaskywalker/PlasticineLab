@@ -54,11 +54,11 @@ def train_td3(env, path, logger, old_args):
     parser.add_argument("--start_timesteps", default=2500, type=int)# Time steps initial random policy is used
     parser.add_argument("--eval_freq", default=200, type=int)       # How often (time steps) we evaluate
     parser.add_argument("--max_timesteps", default=500000, type=int)   # Max time steps to run environment
-    parser.add_argument("--expl_noise", default=0.1)                # Std of Gaussian exploration noise
+    parser.add_argument("--expl_noise", default=0.02) # 0.1                # Std of Gaussian exploration noise
     parser.add_argument("--batch_size", default=256, type=int)      # Batch size for both actor and critic
     parser.add_argument("--gamma", default=0.99, type=float)                 # Discount factor
-    parser.add_argument("--tau", default=0.005)                     # Target network update rate
-    parser.add_argument("--policy_noise", default=0.2)              # Noise added to target policy during critic update
+    parser.add_argument("--tau", default=0.001)                     # Target network update rate
+    parser.add_argument("--policy_noise", default=0.2) # 0.2              # Noise added to target policy during critic update
     parser.add_argument("--noise_clip", default=0.5)                # Range to clip target policy noise
     parser.add_argument("--policy_freq", default=2, type=int)       # Frequency of delayed policy updates
     parser.add_argument("--save_model", action="store_true")        # Save model and optimizer parameters
@@ -99,7 +99,6 @@ def train_td3(env, path, logger, old_args):
         kwargs["noise_clip"] = args.noise_clip * max_action
         kwargs["policy_freq"] = args.policy_freq
         policy = TD3.TD3(**kwargs)
-        copied_policy = copy.deepcopy(policy)
     else:
         raise NotImplementedError
 
@@ -116,18 +115,18 @@ def train_td3(env, path, logger, old_args):
     ep_reward = 0
     ep_iou = 0
     ep_last_iou = 0
-
+    runs = 1
     logger.reset()
     print("Number of steps:",args.max_timesteps)
-    reward_buffer = np.zeros((5,1010))
-    iou_buffer = np.zeros((5,1010))
+    reward_buffer = np.zeros((runs,1010))
+    iou_buffer = np.zeros((runs,1010))
     if not os.path.exists('loggings'):
         os.mkdir('loggings')
     logging_file = open('loggings/{}_output.txt'.format(old_args.exp_name),'w')
     try:
-        for iter in range(5):
+        for iter in range(runs):
             # Use Copied Policy for parameter reset
-            policy = copy.deepcopy(copied_policy)
+            policy.reset_parameters()
             episode_num = 0
             for t in range(int(args.max_timesteps)):
                 episode_timesteps += 1

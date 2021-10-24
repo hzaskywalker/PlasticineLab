@@ -79,20 +79,26 @@ class emdModule(nn.Module):
         return emdFunction.apply(input1, input2, eps, iters)
 
 def test_emd():
-    x1 = torch.rand(20, 8192, 3).cuda()
-    x2 = torch.rand(20, 8192, 3).cuda()
+    x1 = torch.rand(1, 8192, 3).cuda()
+    x2 = torch.rand(1, 8192, 3).cuda()
     emd = emdModule()
     start_time = time.perf_counter()
-    dis, assigment = emd(x1, x2, 0.05, 3000)
+    dis, assigment = emd(x1, x2, 0.001, 30000)
     print("Input_size: ", x1.shape)
     print("Runtime: %lfs" % (time.perf_counter() - start_time))
     print("EMD: %lf" % np.sqrt(dis.cpu()).mean())
     print("|set(assignment)|: %d" % assigment.unique().numel())
     assigment = assigment.cpu().numpy()
-    assigment = np.expand_dims(assigment, -1)
-    x2 = np.take_along_axis(x2, assigment, axis = 1)
-    d = (x1 - x2) * (x1 - x2)
-    print("Verified EMD: %lf" % np.sqrt(d.cpu().sum(-1)).mean())
+    assigment = assigment.squeeze()
+    x2 = x2.squeeze()
+    x1 = x1.squeeze()
+    x2_ = x2[assigment]
+    x1_ = x1[assigment]
+    d = torch.norm(x1-x2_,p=2)
+    d2 = torch.norm(x1-x2,p=2)
+    d3 = torch.norm(x1_-x2,p=2)
+    print(f"Verify EMD: {d} {d2} {d3}")
 
-#test_emd()
+if __name__ == "__main__":
+    test_emd()
         

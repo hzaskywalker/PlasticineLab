@@ -52,17 +52,16 @@ class Solver:
                 self.logger.reset()
 
             env.set_state(sim_state, self.cfg.softness,False)
-            if self.pc_cnt != 0:
-                self.pc_cnt += 1 
             for i in range(len(action)):
                 env.save_current_state(f'raw_data/{exp_name}/state/{self.pc_cnt}')
-                env.step(action[i])
                 action_buffer.append(action[i])
+                env.step(action[i])
                 self.total_steps += 1
                 self.pc_cnt += 1
                 env.compute_loss(taichi_loss=True)
             action_buffer.append(np.zeros_like(action[i])) # For alignment
             env.save_current_state(f'raw_data/{exp_name}/state/{self.pc_cnt}')
+            self.pc_cnt += 1
 
         best_action = None
         best_loss = 1e10

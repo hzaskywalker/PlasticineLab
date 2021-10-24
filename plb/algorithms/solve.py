@@ -59,6 +59,8 @@ def get_args():
     parser.add_argument("--exp_name",type=str,default=None,required=True)
     parser.add_argument("--model_name",type=str,default=None)
     parser.add_argument("--horizon",type=int,default=None)
+    parser.add_argument("--render",action="store_true",default=False)
+    parser.add_argument("--num_observable",type=int,default=None)
 
     args = parser.parse_args()
 
@@ -91,7 +93,7 @@ def main():
         learn_latent_focal(args,loss_fn)
     else:
         taichi_env.init_taichi()
-        env = make(args.env_name, nn=(args.algo=='nn'), sdf_loss=args.sdf_loss,loss_fn = loss_fn,
+        env = make(args.env_name, nn=(args.algo=='nn'), sdf_loss=args.sdf_loss,loss_fn = loss_fn,num_observable=args.num_observable,
                                 density_loss=args.density_loss, contact_loss=args.contact_loss,full_obs = args.srl,
                                 soft_contact_loss=args.soft_contact_loss)
         env.seed(args.seed)

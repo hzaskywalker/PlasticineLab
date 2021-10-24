@@ -69,6 +69,10 @@ class Primitive:
         return self._sdf(f, grid_pos)
 
     @ti.func
+    def solve(self,particle_pos):
+        return (particle_pos + (-self.sdf(0,particle_pos)*self.normal(0,particle_pos)))
+
+    @ti.func
     def normal2(self, f, p):
         d = ti.cast(1e-8, ti.float64)
         n = ti.Vector.zero(self.dtype, self.dim)
