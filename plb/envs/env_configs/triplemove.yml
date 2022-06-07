@@ -1,0 +1,89 @@
+SIMULATOR:
+  yield_stress: 200.
+SHAPES:
+  - shape: box
+    width: (0.1, 0.1, 0.1)
+    init_pos: (0.3, 0.05, 0.5)
+    n_particles: 3333
+  - shape: box
+    width: (0.1, 0.1, 0.1)
+    init_pos: (0.5, 0.05, 0.5)
+    n_particles: 3333
+  - shape: box
+    width: (0.1, 0.1, 0.1)
+    init_pos: (0.7, 0.05, 0.5)
+    n_particles: 3333
+PRIMITIVES:
+  - shape: Sphere
+    radius: 0.03
+    init_pos: (0.23, 0.05, 0.5)
+    color: (0.8, 0.8, 0.8)
+    friction: 0.9
+    action:
+      dim: 3
+      scale: (0.01, 0.01, 0.01)
+  - shape: Sphere
+    radius: 0.03
+    init_pos: (0.37, 0.05, 0.5)
+    color: (0.8, 0.8, 0.8)
+    friction: 0.9
+    action:
+      dim: 3
+      scale: (0.01, 0.01, 0.01)
+  - shape: Sphere
+    radius: 0.03
+    init_pos: (0.43, 0.05, 0.5)
+    color: (0.8, 0.8, 0.8)
+    friction: 0.9
+    action:
+      dim: 3
+      scale: (0.01, 0.01, 0.01)
+  - shape: Sphere
+    radius: 0.03
+    init_pos: (0.57, 0.05, 0.5)
+    color: (0.8, 0.8, 0.8)
+    friction: 0.9
+    action:
+      dim: 3
+      scale: (0.01, 0.01, 0.01)
+  - shape: Sphere
+    radius: 0.03
+    init_pos: (0.63, 0.05, 0.5)
+    color: (0.8, 0.8, 0.8)
+    friction: 0.9
+    action:
+      dim: 3
+      scale: (0.01, 0.01, 0.01)
+  - shape: Sphere
+    radius: 0.03
+    init_pos: (0.77, 0.05, 0.5)
+    color: (0.8, 0.8, 0.8)
+    friction: 0.9
+    action:
+      dim: 3
+      scale: (0.01, 0.01, 0.01)
+ENV:
+  loss:
+    target_path: envs/assets/TripleMove3D-v1.npy
+RENDERER:
+  camera_pos: (0.5, 2.5, 2.)
+  camera_rot: (1.0, 0.)
+  use_directional_light: True
+  light_direction: (0.1, 1, 0.3)
+
+VARIANTS:
+  - ENV:
+      loss:
+        target_path: envs/assets/TripleMove3D-v1.npy
+  - ENV:
+      loss:
+        target_path: envs/assets/TripleMove3D-v2.npy
+  - ENV:
+      loss:
+        target_path: envs/assets/TripleMove3D-v3.npy
+  - ENV:
+      loss:
+        target_path: envs/assets/TripleMove3D-v4.npy
+  - ENV:
+      loss:
+        target_path: envs/assets/TripleMove3D-v5.npy

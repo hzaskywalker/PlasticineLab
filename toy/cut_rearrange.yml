@@ -1,0 +1,37 @@
+SIMULATOR:
+  E: 5000.
+  n_particles: 10000
+  yield_stress: 200.
+  ground_friction: 1.
+  gravity: (0, -10, 0)
+  quality: 2.
+SHAPES:
+  - shape: box
+    init_pos: (0.45, 0.08, 0.5)
+    width: (0.2, 0.08, 0.2) # Computed based on the volume of the sphere 0.00143675
+    color: 100
+    n_particles: 5000
+PRIMITIVES:
+  - shape: Knife
+    h: (0.125, 0.125)
+    size: (0.025, 0.2, 0.2)
+    prot: (1.0, 0.0, 0.0, 0.58)
+    init_pos: (0.5, 0.3, 0.5)
+    color: (0.8, 0.8, 0.8)
+    friction: 0.
+    action:
+      dim: 3
+      scale: (0.015, 0.015, 0.015)
+
+ENV:
+  loss:
+    target_path: ../datasets/0706_PushSpread/target
+
+
+RENDERER:
+  #name: plb
+  image_res: (512, 512)
+#  camera_pos: (0.5, 0.65, 2.4)
+#  camera_rot: (0.3, 0.)
+  use_directional_light: True
+  light_direction: (0., 1., 1.)

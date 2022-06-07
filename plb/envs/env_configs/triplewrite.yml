@@ -1,0 +1,46 @@
+SIMULATOR:
+  E: 5000.
+  n_particles: 25000
+  yield_stress: 50.
+  ground_friction: 100.
+SHAPES:
+  - shape: box
+    width: (0.7, 0.1, 0.25)
+    init_pos: (0.5, 0.05, 0.5)
+PRIMITIVES:
+  - shape: Capsule
+    h: 0.06
+    r: 0.03
+    init_pos: (0.5, 0.1, 0.5)
+    color: (0.8, 0.8, 0.8)
+    friction: 0.
+    action:
+      dim: 3
+      scale: (0.01, 0.01, 0.01)
+ENV:
+  loss:
+    target_path: envs/assets/TripleMove3D-v1.npy
+RENDERER:
+  spp: 10
+  sdf_threshold: 0.5
+  camera_pos: (0.46, 2.5, 1.2)
+  camera_rot: (1.3, 0.)
+  use_directional_light: True
+  light_direction: (0.46, 2.5, 1.2)
+
+VARIANTS:
+  - ENV:
+      loss:
+        target_path: envs/assets/TripleWrite3D-v1.npy
+  - ENV:
+      loss:
+        target_path: envs/assets/TripleWrite3D-v2.npy
+  - ENV:
+      loss:
+        target_path: envs/assets/TripleWrite3D-v3.npy
+  - ENV:
+      loss:
+        target_path: envs/assets/TripleWrite3D-v4.npy
+  - ENV:
+      loss:
+        target_path: envs/assets/TripleWrite3D-v5.npy

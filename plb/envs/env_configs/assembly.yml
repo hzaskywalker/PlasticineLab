@@ -1,0 +1,53 @@
+SIMULATOR:
+  yield_stress: 100.
+  ground_friction: 100.
+SHAPES:
+  - shape: box
+    width: (0.16, 0.16, 0.16)
+    init_pos: (0.6, 0.08, 0.5)
+    n_particles: 6000
+    color: ((150<<8)+ (150<<16))
+  - shape: sphere
+    radius: 0.06
+    init_pos: (0.3, 0.06, 0.5)
+    n_particles: 4000
+    color: ((0<<8)+ (150<<16) +150)
+PRIMITIVES:
+  - shape: Sphere
+    radius: 0.04
+    init_pos: (0.38, 0.06, 0.5)
+    color: (0.8, 0.8, 0.8)
+    friction: 0.9
+    action:
+      dim: 3
+      scale: (0.009, 0.009, 0.009)
+  - shape: Sphere
+    radius: 0.04
+    init_pos: (0.22, 0.06, 0.5)
+    color: (0.8, 0.8, 0.8)
+    friction: 0.9
+    action:
+      dim: 3
+      scale: (0.009, 0.009, 0.009)
+ENV:
+  loss:
+    target_path: envs/assets/Assembly3D-v1.npy
+RENDERER:
+  camera_pos: (0.5, 0.5, 2.5)
+  camera_rot: (0.1, 0.)
+VARIANTS:
+  - ENV:
+      loss:
+        target_path: envs/assets/Assembly3D-v1.npy
+  - ENV:
+      loss:
+        target_path: envs/assets/Assembly3D-v2.npy
+  - ENV:
+      loss:
+        target_path: envs/assets/Assembly3D-v3.npy
+  - ENV:
+      loss:
+        target_path: envs/assets/Assembly3D-v4.npy
+  - ENV:
+      loss:
+        target_path: envs/assets/Assembly3D-v5.npy

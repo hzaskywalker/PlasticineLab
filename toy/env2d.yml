@@ -1,0 +1,44 @@
+SIMULATOR:
+  yield_stress: 100.
+  ground_friction: 2.
+  dim: 2
+  dtype: float32
+  gravity: (0.0, -1.0, 0.0)
+  E: 1e3
+  nu: 0.2
+SHAPES:
+  - shape: box
+    width: (0.2, 0.2)
+    init_pos: (0.5, 0.5)
+    n_particles: 7000
+    color: (((0 << 8) + 150) << 8)
+PRIMITIVES:
+  - shape: Sphere
+    radius: 0.03
+    init_pos: (0.4, 0.5)
+    color: (0.7, 0.7, 0.7)
+    init_rot: (1., 0.)
+    lower_bound: (0., 0.)
+    upper_bound: (1., 1.)
+    friction: 0.9
+    action:
+      dim: 2
+      scale: (0.01, 0.01, 0.01)
+  - shape: Sphere
+    radius: 0.03
+    init_pos: (0.6, 0.5)
+    color: (0.7, 0.7, 0.7)
+    init_rot: (1., 0.)
+    lower_bound: (0., 0.)
+    upper_bound: (1., 1.)
+    friction: 0.9
+    action:
+      dim: 2
+      scale: (0.01, 0.01, 0.01)
+ENV:
+  loss:
+    target_path: envs/data/Rope3D-v1.npy
+RENDERER:
+  spp: 10
+  camera_pos: (0.5, 2.5, 2.)
+  camera_rot: (1.0, 0.)

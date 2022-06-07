@@ -1,0 +1,45 @@
+SIMULATOR:
+  E: 5000.
+  n_particles: 10000
+  yield_stress: 50.
+  ground_friction: 1.5
+SHAPES:
+  - shape: box
+    width: (0.3, 0.1, 0.3)
+    init_pos: (0.5, 0.05, 0.5)
+    color: 100
+PRIMITIVES:
+  - shape: RollingPin
+    h: 0.3
+    r: 0.03
+    init_pos: (0.5, 0.123, 0.5)
+    init_rot: (0.707, 0.707, 0., 0.)
+    color: (0.8, 0.8, 0.8)
+    friction: 0.9
+    action:
+      dim: 3
+      scale: (0.6666666666666667, 0.06666666666666668, 0.001)
+ENV:
+  loss:
+    target_path: envs/assets/Rollingpin3D-v1.npy
+RENDERER:
+  camera_pos: (0.5, 2.5, 2.)
+  camera_rot: (1.0, 0.)
+  use_directional_light: True
+  light_direction: (0., 1., 0.)
+VARIANTS:
+  - ENV:
+      loss:
+        target_path: envs/assets/Rollingpin3D-v1.npy
+  - ENV:
+      loss:
+        target_path: envs/assets/Rollingpin3D-v2.npy
+  - ENV:
+      loss:
+        target_path: envs/assets/Rollingpin3D-v3.npy
+  - ENV:
+      loss:
+        target_path: envs/assets/Rollingpin3D-v4.npy
+  - ENV:
+      loss:
+        target_path: envs/assets/Rollingpin3D-v5.npy

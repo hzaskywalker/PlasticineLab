@@ -1,0 +1,44 @@
+SIMULATOR:
+  yield_stress: 50.
+  ground_friction: 100.
+
+SHAPES:
+  - shape: box
+    width: (0.2, 0.2, 0.2)
+    init_pos: (0.5, 0.1, 0.5)
+    n_particles: 6000
+    color: ((150<<8)+ (150<<16))
+PRIMITIVES:
+  - shape: Sphere
+    radius: 0.04
+    init_pos: (0.5, 0.35, 0.5)
+    color: (0.8, 0.8, 0.8)
+    friction: 0.9
+    lower_bound: (0.1, 0.1, 0.1)
+    upper_bound: (0.9, 0.9, 0.9)
+    action:
+      dim: 3
+      scale: (0.02, 0.02, 0.02)
+ENV:
+  loss:
+    target_path: envs/assets/Pinch3D-v1.npy
+
+RENDERER:
+  camera_pos: (0.5, 2.5, 2.2)
+  camera_rot: (0.8, 0.)
+VARIANTS:
+  - ENV:
+      loss:
+        target_path: envs/assets/Pinch3D-v1.npy
+  - ENV:
+      loss:
+        target_path: envs/assets/Pinch3D-v2.npy
+  - ENV:
+      loss:
+        target_path: envs/assets/Pinch3D-v3.npy
+  - ENV:
+      loss:
+        target_path: envs/assets/Pinch3D-v4.npy
+  - ENV:
+      loss:
+        target_path: envs/assets/Pinch3D-v5.npy
