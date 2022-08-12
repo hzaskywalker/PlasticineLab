@@ -31,8 +31,8 @@ def get_args():
     parser.add_argument("--contact_loss", type=float, default=1)
     parser.add_argument("--soft_contact_loss", action='store_true')
 
-    parser.add_argument("--num_steps", type=int, default=None)
-    parser.add_argument("--horizon", type=int, default=None)
+    parser.add_argument("--num_steps", type=int, default=400)
+    parser.add_argument("--horizon", type=int, default=50)
     # differentiable physics parameters
     parser.add_argument("--lr", type=float, default=0.1)
     parser.add_argument("--softness", type=float, default=666.)

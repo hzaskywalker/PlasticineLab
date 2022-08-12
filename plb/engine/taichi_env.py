@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from ..config.utils import CfgNode
 
 # TODO: run on GPU, fast_math will cause error on float64's sqrt; removing it cuases compile error..
-ti.init(arch=ti.gpu, debug=False, fast_math=True)
+ti.init(arch=ti.gpu, debug=False, device_memory_GB=12)
 
 
 @ti.data_oriented
@@ -22,7 +22,6 @@ class TaichiEnv:
         from .renderer.renderer2d import Renderer2D
         from .shapes import Shapes
         from .losses import Loss
-        from .nn.mlp import MLP
 
         dim = cfg.SIMULATOR.dim
 
@@ -44,9 +43,6 @@ class TaichiEnv:
             self.renderer = Renderer(cfg.RENDERER, self.primitives)
         else:
             self.renderer = Renderer2D(cfg.RENDERER, self.primitives)
-
-        if nn:
-            self.nn = MLP(self.simulator, self.primitives, (256, 256))
 
         if loss:
             self.loss = Loss(cfg.ENV.loss, self.simulator)

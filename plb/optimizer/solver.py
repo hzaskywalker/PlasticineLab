@@ -106,7 +106,17 @@ def solve_action(env, path, logger, args):
 
     action = solver.solve()
 
+    poses = [
+        ((0.5, 0.33, -2.0), (0.0, 0.0)),
+    ]
+
+    images = []
+    for pos, rot in poses:
+        env.taichi_env.renderer.set_camera_pose(camera_pos=pos, camera_rot=rot)
+        
+
     for idx, act in enumerate(action):
         env.step(act)
         img = env.render(mode='rgb_array')
-        cv2.imwrite(f"{path}/{idx:04d}.png", img[..., ::-1])
+        print(img.min(), img.max())
+        cv2.imwrite(f"{path}/{idx:04d}.png", img[..., ::-1].astype(np.uint8))

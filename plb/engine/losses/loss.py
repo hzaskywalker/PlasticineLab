@@ -188,7 +188,7 @@ class Loss:
     def clear_loss(self):
         self.loss[None] = 0
 
-    @ti.complex_kernel
+    @ti.ad.grad_replaced
     def compute_loss_kernel(self, f):
         self.clear_losses()
         if not self.soft_contact_loss:
@@ -212,7 +212,7 @@ class Loss:
 
         self.sum_up_loss_kernel()
 
-    @ti.complex_kernel_grad(compute_loss_kernel)
+    @ti.ad.grad_for(compute_loss_kernel)
     def compute_loss_kernel_grad(self, f):
         self.clear_losses()
         if not self.soft_contact_loss:
@@ -262,11 +262,11 @@ class Loss:
         I = np.sum(a * b)
         return I / (np.sum(a) + np.sum(b) - I)
 
-    @ti.complex_kernel
+    @ti.ad.grad_replaced
     def iou(self):
         self._iou = self.iou_kernel()
 
-    @ti.complex_kernel_grad(iou)
+    @ti.ad.grad_for(iou)
     def iou_grad(self):
         # no grad
         pass

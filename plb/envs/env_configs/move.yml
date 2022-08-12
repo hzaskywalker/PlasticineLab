@@ -2,7 +2,7 @@ SIMULATOR:
   E: 5000.
   n_particles: 10000
   yield_stress: 200.
-  max_steps: 40
+  max_steps: 1024
 SHAPES:
   - shape: sphere
     radius: 0.2049069760770578/2
@@ -71,3 +71,9 @@ VARIANTS:
     ENV:
       loss:
         target_path: envs/assets/Move3D-v5.npy
+
+
+RENDERER:
+  image_res: (512, 512)
+  use_directional_light: True
+  light_direction: (0., 1., 1.)
