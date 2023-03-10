@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from ..config.utils import CfgNode
 
 # TODO: run on GPU, fast_math will cause error on float64's sqrt; removing it cuases compile error..
-ti.init(arch=ti.gpu, debug=False, device_memory_GB=12)
+ti.init(arch=ti.gpu, debug=False, device_memory_GB=10)
 
 
 @ti.data_oriented

@@ -3,7 +3,7 @@ import os
 
 import time
 import os
-from torch.utils.tensorboard import SummaryWriter as TorchWriter
+from tensorboardX import SummaryWriter as TorchWriter
 
 
 class SummaryWriter:
